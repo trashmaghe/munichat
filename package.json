@@ -1,0 +1,35 @@
+{
+  "name": "munichat",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build:shared": "npm run build -w packages/shared",
+    "build": "npm run build:shared && npm run build --workspaces --if-present",
+    "dev": "concurrently -n shared,api,web -c blue,green,magenta \"npm run dev -w packages/shared\" \"npm run start:dev -w apps/api\" \"npm run dev -w apps/web\"",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "docker:up": "docker compose -f docker/docker-compose.yml --env-file .env up -d",
+    "docker:down": "docker compose -f docker/docker-compose.yml --env-file .env down",
+    "docker:logs": "docker compose -f docker/docker-compose.yml --env-file .env logs -f",
+    "prisma:migrate": "npm run prisma:migrate -w apps/api",
+    "prisma:generate": "npm run prisma:generate -w apps/api",
+    "prisma:studio": "npm run prisma:studio -w apps/api"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "eslint": "^9",
+    "@eslint/js": "^9",
+    "typescript-eslint": "^8",
+    "eslint-config-prettier": "^9",
+    "prettier": "^3",
+    "concurrently": "^9",
+    "dotenv-cli": "^7"
+  }
+}
