@@ -24,8 +24,49 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      openldap:
+        image: osixia/openldap:1.5.0
+        env:
+          LDAP_ORGANISATION: MuniChat
+          LDAP_DOMAIN: munichat.local
+          LDAP_ADMIN_PASSWORD: test
+          LDAP_TLS: "false"
+          LDAP_ENABLE_MEMBEROF: "true"
+        ports:
+          - 1389:389
+        options: >-
+          --health-cmd "ldapsearch -x -H ldap://localhost -b dc=munichat,dc=local"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/test
+      REDIS_URL: redis://localhost:6379
+      LDAP_URL: ldap://localhost:1389
+      LDAP_BIND_DN: cn=admin,dc=munichat,dc=local
+      LDAP_BIND_PASSWORD: test
+      LDAP_ADMIN_PASSWORD: test
+      LDAP_BASE_DN: dc=munichat,dc=local
+      LDAP_USER_SEARCH_BASE: ou=people,dc=munichat,dc=local
+      LDAP_GROUP_SEARCH_BASE: ou=groups,dc=munichat,dc=local
+      LDAP_USERNAME_ATTRIBUTE: uid
+      LDAP_UNIQUE_ID_ATTRIBUTE: entryUUID
+      JWT_ACCESS_SECRET: test-access-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+      JWT_ACCESS_TTL: "900"
+      JWT_REFRESH_TTL: "604800"
+      WEB_ORIGIN: http://localhost:5173
 
     steps:
       - uses: actions/checkout@v4
@@ -45,6 +86,16 @@ jobs:
 
       - run: npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
 
+      # GitHub Actions service containers can't mount local volumes, so unlike the
+      # docker-compose setup (which auto-bootstraps via a mounted LDIF), we seed the
+      # directory explicitly here once the openldap service container is healthy.
+      - run: sudo apt-get update && sudo apt-get install -y ldap-utils
+
+      - run: |
+          ldapadd -x -D "$LDAP_BIND_DN" -w "$LDAP_ADMIN_PASSWORD" -H "$LDAP_URL" -f docker/ldap/bootstrap.ldif
+
       - run: npm run test --workspaces --if-present
+
+      - run: npm run test:e2e -w apps/api
 
       - run: npm run build --workspaces --if-present

@@ -16,6 +16,8 @@ model User {
   department   String?
   avatarUrl    String?
   isActive     Boolean   @default(true)
+  tokenVersion Int       @default(0)
+  lastLoginAt  DateTime?
   lastSeenAt   DateTime?
   createdAt    DateTime  @default(now())
 
