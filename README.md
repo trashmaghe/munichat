@@ -1,4 +1,19 @@
+<div align="center">
+
+<img src="docs/assets/brasao-pmns.png" width="120" alt="Brasão de Nova Serrana" />
+
 # MuniChat
+
+### Real-Time Municipal Chat Platform
+
+*Powered by Prefeitura Municipal de Nova Serrana · MG*
+
+![versão](https://img.shields.io/badge/vers%C3%A3o-0.1.0-blue)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E)
+![React](https://img.shields.io/badge/React-18-61DAFB)
+![licença](https://img.shields.io/badge/licen%C3%A7a-Proprietary-lightgrey)
+
+</div>
 
 A self-hosted, real-time chat platform for a municipal government — replacing WhatsApp/Spark with Active Directory authentication, department-based channels, and GLPI ticket creation from chat.
 
