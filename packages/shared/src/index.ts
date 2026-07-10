@@ -1,3 +1,7 @@
 export * from './enums';
 export * from './health.dto';
 export * from './auth.dto';
+export * from './user.dto';
+export * from './channel.dto';
+export * from './message.dto';
+export * from './socket-events.dto';

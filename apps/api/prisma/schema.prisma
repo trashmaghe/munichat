@@ -56,6 +56,7 @@ model ChannelMember {
   channel Channel @relation(fields: [channelId], references: [id])
 
   @@id([userId, channelId])
+  @@index([channelId])
 }
 
 enum MemberRole {
@@ -80,7 +81,7 @@ model Message {
   linkPreview LinkPreview?
   ticketRef   TicketRef?
 
-  @@index([channelId, createdAt])
+  @@index([channelId, createdAt, id])
 }
 
 enum MessageType {

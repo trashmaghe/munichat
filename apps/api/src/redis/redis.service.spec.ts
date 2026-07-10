@@ -7,6 +7,11 @@ const mockRedisInstance = {
   get: jest.fn(),
   del: jest.fn(),
   quit: jest.fn(),
+  incr: jest.fn(),
+  decr: jest.fn(),
+  sadd: jest.fn(),
+  srem: jest.fn(),
+  smembers: jest.fn(),
 };
 
 jest.mock('ioredis', () => {
@@ -76,5 +81,54 @@ describe('RedisService', () => {
     await service.onModuleDestroy();
 
     expect(mockRedisInstance.quit).toHaveBeenCalled();
+  });
+
+  it('increments the presence count for a user', async () => {
+    mockRedisInstance.incr.mockResolvedValue(1);
+
+    const count = await service.incrPresenceCount('user-1');
+
+    expect(mockRedisInstance.incr).toHaveBeenCalledWith(
+      'presence:count:user-1',
+    );
+    expect(count).toBe(1);
+  });
+
+  it('decrements the presence count for a user', async () => {
+    mockRedisInstance.decr.mockResolvedValue(0);
+
+    const count = await service.decrPresenceCount('user-1');
+
+    expect(mockRedisInstance.decr).toHaveBeenCalledWith(
+      'presence:count:user-1',
+    );
+    expect(count).toBe(0);
+  });
+
+  it('adds a user to the online set', async () => {
+    await service.addOnlineUser('user-1');
+
+    expect(mockRedisInstance.sadd).toHaveBeenCalledWith(
+      'presence:online',
+      'user-1',
+    );
+  });
+
+  it('removes a user from the online set', async () => {
+    await service.removeOnlineUser('user-1');
+
+    expect(mockRedisInstance.srem).toHaveBeenCalledWith(
+      'presence:online',
+      'user-1',
+    );
+  });
+
+  it('lists the online set members', async () => {
+    mockRedisInstance.smembers.mockResolvedValue(['user-1', 'user-2']);
+
+    const result = await service.listOnlineUsers();
+
+    expect(mockRedisInstance.smembers).toHaveBeenCalledWith('presence:online');
+    expect(result).toEqual(['user-1', 'user-2']);
   });
 });

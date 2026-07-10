@@ -35,4 +35,32 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private refreshKey(jti: string): string {
     return `refresh:${jti}`;
   }
+
+  async incrPresenceCount(userId: string): Promise<number> {
+    return this.client.incr(this.presenceCountKey(userId));
+  }
+
+  async decrPresenceCount(userId: string): Promise<number> {
+    return this.client.decr(this.presenceCountKey(userId));
+  }
+
+  async addOnlineUser(userId: string): Promise<void> {
+    await this.client.sadd(this.presenceOnlineKey(), userId);
+  }
+
+  async removeOnlineUser(userId: string): Promise<void> {
+    await this.client.srem(this.presenceOnlineKey(), userId);
+  }
+
+  async listOnlineUsers(): Promise<string[]> {
+    return this.client.smembers(this.presenceOnlineKey());
+  }
+
+  private presenceCountKey(userId: string): string {
+    return `presence:count:${userId}`;
+  }
+
+  private presenceOnlineKey(): string {
+    return 'presence:online';
+  }
 }
