@@ -10,6 +10,8 @@ import {
 } from '@nestjs/websockets';
 import { User } from '@prisma/client';
 import {
+  deleteMessageRequestSchema,
+  editMessageRequestSchema,
   Message,
   PresenceSyncPayload,
   PresenceUpdatePayload,
@@ -25,10 +27,11 @@ import { MessagesService } from '../messages/messages.service';
 import { toMessageDto } from '../messages/message-response.mapper';
 import { ChatAuthService } from './chat-auth.service';
 import { PresenceService } from './presence.service';
+import { channelRoom } from './channel-room';
 
 type AuthenticatedSocket = Socket<any, any, any, { user: User }>;
 
-type MessageSendAck = { message: Message } | { error: string };
+type MessageMutationAck = { message: Message } | { error: string };
 
 @WebSocketGateway({
   cors: {
@@ -67,7 +70,7 @@ export class ChatGateway
     const user = socket.data.user;
     const channels = await this.channelsService.listForUser(user.id);
     for (const channel of channels) {
-      await socket.join(this.channelRoom(channel.id));
+      await socket.join(channelRoom(channel.id));
     }
 
     const becameOnline = await this.presenceService.markOnline(user.id);
@@ -97,7 +100,7 @@ export class ChatGateway
   async handleMessageSend(
     @ConnectedSocket() socket: AuthenticatedSocket,
     @MessageBody() body: unknown,
-  ): Promise<MessageSendAck> {
+  ): Promise<MessageMutationAck> {
     const user = socket.data.user;
     const parsed = sendMessageRequestSchema.safeParse(body);
     if (!parsed.success) {
@@ -113,16 +116,88 @@ export class ChatGateway
       return { error: 'You are not a member of this channel' };
     }
 
-    const created = await this.messagesService.create({
+    const result = await this.messagesService.create({
       channelId: request.channelId,
       authorId: user.id,
       content: request.content,
+      replyToId: request.replyToId,
+      attachments: request.attachments,
     });
-    const dto = toMessageDto(created);
+    if ('error' in result) {
+      return { error: result.error };
+    }
+
+    const dto = toMessageDto(result.message);
 
     socket
-      .to(this.channelRoom(request.channelId))
+      .to(channelRoom(request.channelId))
       .emit(SocketEvent.MESSAGE_NEW, dto);
+
+    return { message: dto };
+  }
+
+  @SubscribeMessage(SocketEvent.MESSAGE_EDIT)
+  async handleMessageEdit(
+    @ConnectedSocket() socket: AuthenticatedSocket,
+    @MessageBody() body: unknown,
+  ): Promise<MessageMutationAck> {
+    const user = socket.data.user;
+    const parsed = editMessageRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return { error: 'Invalid message payload' };
+    }
+
+    const existing = await this.messagesService.getById(parsed.data.messageId);
+    if (!existing) {
+      return { error: 'Message not found' };
+    }
+    if (existing.authorId !== user.id) {
+      return { error: 'You can only edit your own messages' };
+    }
+    if (existing.deletedAt !== null) {
+      return { error: 'Cannot edit a deleted message' };
+    }
+
+    const updated = await this.messagesService.update(
+      parsed.data.messageId,
+      parsed.data.content,
+    );
+    const dto = toMessageDto(updated);
+
+    this.server
+      .to(channelRoom(dto.channelId))
+      .emit(SocketEvent.MESSAGE_UPDATED, dto);
+
+    return { message: dto };
+  }
+
+  @SubscribeMessage(SocketEvent.MESSAGE_DELETE)
+  async handleMessageDelete(
+    @ConnectedSocket() socket: AuthenticatedSocket,
+    @MessageBody() body: unknown,
+  ): Promise<MessageMutationAck> {
+    const user = socket.data.user;
+    const parsed = deleteMessageRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return { error: 'Invalid message payload' };
+    }
+
+    const existing = await this.messagesService.getById(parsed.data.messageId);
+    if (!existing) {
+      return { error: 'Message not found' };
+    }
+    if (existing.authorId !== user.id) {
+      return { error: 'You can only delete your own messages' };
+    }
+
+    const updated = await this.messagesService.softDelete(
+      parsed.data.messageId,
+    );
+    const dto = toMessageDto(updated);
+
+    this.server
+      .to(channelRoom(dto.channelId))
+      .emit(SocketEvent.MESSAGE_UPDATED, dto);
 
     return { message: dto };
   }
@@ -166,10 +241,6 @@ export class ChatGateway
       channelId: parsed.data.channelId,
       userId: user.id,
     };
-    socket.to(this.channelRoom(parsed.data.channelId)).emit(event, payload);
-  }
-
-  private channelRoom(channelId: string): string {
-    return `channel:${channelId}`;
+    socket.to(channelRoom(parsed.data.channelId)).emit(event, payload);
   }
 }

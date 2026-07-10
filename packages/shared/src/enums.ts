@@ -19,3 +19,10 @@ export const MessageType = {
   TICKET: 'TICKET',
 } as const;
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
+
+export const LinkPreviewStatus = {
+  READY: 'READY',
+  FAILED: 'FAILED',
+} as const;
+export type LinkPreviewStatus =
+  (typeof LinkPreviewStatus)[keyof typeof LinkPreviewStatus];

@@ -50,6 +50,19 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: test_minio_admin
+          MINIO_ROOT_PASSWORD: test_minio_password
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/test
       REDIS_URL: redis://localhost:6379
@@ -67,6 +80,13 @@ jobs:
       JWT_ACCESS_TTL: "900"
       JWT_REFRESH_TTL: "604800"
       WEB_ORIGIN: http://localhost:5173
+      MINIO_ENDPOINT: localhost
+      MINIO_PORT: "9000"
+      MINIO_USE_SSL: "false"
+      MINIO_ROOT_USER: test_minio_admin
+      MINIO_ROOT_PASSWORD: test_minio_password
+      MINIO_BUCKET: munichat-files
+      LINK_PREVIEW_ALLOW_PRIVATE_HOSTS: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -93,6 +113,18 @@ jobs:
 
       - run: |
           ldapadd -x -D "$LDAP_BIND_DN" -w "$LDAP_ADMIN_PASSWORD" -H "$LDAP_URL" -f docker/ldap/bootstrap.ldif
+
+      # Same reasoning as the LDAP seed step above: GitHub Actions service
+      # containers can't mount local volumes, so unlike docker-compose's
+      # minio-init service, we create the bucket explicitly here once the
+      # minio service container is healthy.
+      - run: |
+          curl -sSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
+          chmod +x /usr/local/bin/mc
+
+      - run: |
+          mc alias set local http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+          mc mb --ignore-existing "local/$MINIO_BUCKET"
 
       - run: npm run test --workspaces --if-present
 

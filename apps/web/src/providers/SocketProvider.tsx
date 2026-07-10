@@ -8,7 +8,7 @@ import {
   type TypingBroadcast,
 } from '@munichat/shared';
 import { getSocket } from '@/lib/socket';
-import { appendMessageToCache } from '@/lib/message-cache';
+import { appendMessageToCache, updateMessageInCache } from '@/lib/message-cache';
 import { useChatStore } from '@/stores/useChatStore';
 
 const TYPING_EXPIRY_MS = 5000;
@@ -22,6 +22,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     function handleMessageNew(message: Message) {
       appendMessageToCache(queryClient, message);
+    }
+    function handleMessageUpdated(message: Message) {
+      updateMessageInCache(queryClient, message.channelId, message);
     }
     function handlePresenceSync(payload: PresenceSyncPayload) {
       useChatStore.getState().setOnlineUsers(payload.onlineUserIds);
@@ -40,6 +43,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     }
 
     socket.on(SocketEvent.MESSAGE_NEW, handleMessageNew);
+    socket.on(SocketEvent.MESSAGE_UPDATED, handleMessageUpdated);
     socket.on(SocketEvent.PRESENCE_SYNC, handlePresenceSync);
     socket.on(SocketEvent.PRESENCE_UPDATE, handlePresenceUpdate);
     socket.on(SocketEvent.TYPING_START, handleTypingStart);
@@ -54,6 +58,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     return () => {
       clearInterval(pruneInterval);
       socket.off(SocketEvent.MESSAGE_NEW, handleMessageNew);
+      socket.off(SocketEvent.MESSAGE_UPDATED, handleMessageUpdated);
       socket.off(SocketEvent.PRESENCE_SYNC, handlePresenceSync);
       socket.off(SocketEvent.PRESENCE_UPDATE, handlePresenceUpdate);
       socket.off(SocketEvent.TYPING_START, handleTypingStart);

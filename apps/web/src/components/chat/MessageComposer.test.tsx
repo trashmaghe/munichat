@@ -20,7 +20,13 @@ function renderComposer(MessageComposer: Awaited<ReturnType<typeof loadComposer>
   const queryClient = new QueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <MessageComposer channelId="channel-1" />
+      <MessageComposer
+        channelId="channel-1"
+        replyTarget={null}
+        editTarget={null}
+        onCancelReply={() => {}}
+        onCancelEdit={() => {}}
+      />
     </QueryClientProvider>,
   );
 }

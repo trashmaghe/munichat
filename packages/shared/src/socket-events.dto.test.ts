@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  deleteMessageRequestSchema,
+  editMessageRequestSchema,
   presenceSyncPayloadSchema,
   presenceUpdatePayloadSchema,
   typingBroadcastSchema,
@@ -47,5 +49,27 @@ describe('presenceUpdatePayloadSchema', () => {
 
   it('rejects a missing online field', () => {
     expect(() => presenceUpdatePayloadSchema.parse({ userId: 'u1' })).toThrow();
+  });
+});
+
+describe('editMessageRequestSchema', () => {
+  it('accepts a valid payload', () => {
+    const result = editMessageRequestSchema.parse({ messageId: 'm1', content: 'updated' });
+    expect(result.content).toBe('updated');
+  });
+
+  it('rejects empty content', () => {
+    expect(() => editMessageRequestSchema.parse({ messageId: 'm1', content: '   ' })).toThrow();
+  });
+});
+
+describe('deleteMessageRequestSchema', () => {
+  it('accepts a valid payload', () => {
+    const result = deleteMessageRequestSchema.parse({ messageId: 'm1' });
+    expect(result.messageId).toBe('m1');
+  });
+
+  it('rejects a missing messageId', () => {
+    expect(() => deleteMessageRequestSchema.parse({})).toThrow();
   });
 });

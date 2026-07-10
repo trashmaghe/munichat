@@ -18,3 +18,28 @@ export function appendMessageToCache(queryClient: QueryClient, message: Message)
     };
   });
 }
+
+// An edited/deleted/link-preview-updated message can be on any loaded page
+// (unlike a freshly-sent one, which is always on the newest), so this has to
+// search every page rather than just prepending to pages[0].
+export function updateMessageInCache(
+  queryClient: QueryClient,
+  channelId: string,
+  message: Message,
+): void {
+  const queryKey = ['channels', channelId, 'messages'];
+  queryClient.setQueryData<InfiniteData<MessageHistoryResponse>>(queryKey, (data) => {
+    if (!data) {
+      return data;
+    }
+    return {
+      ...data,
+      pages: data.pages.map((page) => ({
+        ...page,
+        messages: page.messages.map((existing) =>
+          existing.id === message.id ? message : existing,
+        ),
+      })),
+    };
+  });
+}
