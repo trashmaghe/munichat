@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { Message } from '@munichat/shared';
 import { useChannelMessages } from '@/hooks/useChannelMessages';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MessageItem } from '@/components/chat/MessageItem';
@@ -6,7 +7,17 @@ import { Button } from '@/components/ui/button';
 
 const NEAR_BOTTOM_THRESHOLD_PX = 100;
 
-export function MessageList({ channelId }: { channelId: string }) {
+export function MessageList({
+  channelId,
+  onReply,
+  onEdit,
+  onDelete,
+}: {
+  channelId: string;
+  onReply: (message: Message) => void;
+  onEdit: (message: Message) => void;
+  onDelete: (messageId: string) => void;
+}) {
   const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useChannelMessages(channelId);
   const { data: currentUser } = useCurrentUser();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,7 +57,14 @@ export function MessageList({ channelId }: { channelId: string }) {
       )}
       {isLoading && <p className="p-4 text-sm text-muted-foreground">Loading messages…</p>}
       {messages.map((message) => (
-        <MessageItem key={message.id} message={message} isOwn={message.authorId === currentUser?.id} />
+        <MessageItem
+          key={message.id}
+          message={message}
+          isOwn={message.authorId === currentUser?.id}
+          onReply={onReply}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
       ))}
     </div>
   );

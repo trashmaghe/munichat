@@ -73,6 +73,45 @@ describe('SocketProvider', () => {
     expect(socket.disconnect).toHaveBeenCalledTimes(1);
   });
 
+  it('replaces a message in the cache when message:updated is received (edit/delete/link-preview-ready)', async () => {
+    const { SocketProvider } = await loadSocketProvider();
+    const queryClient = new QueryClient();
+    const original = {
+      id: 'm1',
+      channelId: 'channel-1',
+      authorId: 'user-1',
+      content: 'original',
+      type: 'TEXT',
+      replyToId: null,
+      editedAt: null,
+      deletedAt: null,
+      createdAt: '2026-07-10T00:00:00.000Z',
+      author: { id: 'user-1', username: 'jsilva', displayName: 'Joao Silva', avatarUrl: null },
+    };
+    queryClient.setQueryData(['channels', 'channel-1', 'messages'], {
+      pages: [{ messages: [original], nextCursor: null }],
+      pageParams: [undefined],
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SocketProvider>
+          <div>chat</div>
+        </SocketProvider>
+      </QueryClientProvider>,
+    );
+
+    const updated = { ...original, content: 'edited', editedAt: '2026-07-10T00:01:00.000Z' };
+    getMockSocket().trigger(SocketEvent.MESSAGE_UPDATED, updated);
+
+    const cached = queryClient.getQueryData<{ pages: { messages: unknown[] }[] }>([
+      'channels',
+      'channel-1',
+      'messages',
+    ]);
+    expect(cached?.pages[0].messages).toEqual([updated]);
+  });
+
   it('clears the currentUser cache when the socket reports a connect_error', async () => {
     const { SocketProvider } = await loadSocketProvider();
     const queryClient = new QueryClient();

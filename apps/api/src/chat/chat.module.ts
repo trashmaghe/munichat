@@ -9,5 +9,6 @@ import { PresenceService } from './presence.service';
 @Module({
   imports: [AuthModule, ChannelsModule, MessagesModule],
   providers: [ChatGateway, ChatAuthService, PresenceService],
+  exports: [ChatGateway],
 })
 export class ChatModule {}

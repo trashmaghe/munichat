@@ -22,6 +22,9 @@ function buildMessage(id: string, content: string, createdAt: string) {
     deletedAt: null,
     createdAt,
     author,
+    attachments: [],
+    linkPreview: null,
+    replyTo: null,
   };
 }
 
@@ -61,7 +64,12 @@ describe('MessageList', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queryClient}>
-        <MessageList channelId="channel-1" />
+        <MessageList
+          channelId="channel-1"
+          onReply={() => {}}
+          onEdit={() => {}}
+          onDelete={() => {}}
+        />
       </QueryClientProvider>,
     );
 

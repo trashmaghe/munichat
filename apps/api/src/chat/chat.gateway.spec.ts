@@ -28,13 +28,18 @@ function asGatewaySocket(socket: FakeSocket): GatewaySocket {
 describe('ChatGateway', () => {
   let gateway: ChatGateway;
   let channelsService: { listForUser: jest.Mock; isMember: jest.Mock };
-  let messagesService: { create: jest.Mock };
+  let messagesService: {
+    create: jest.Mock;
+    getById: jest.Mock;
+    update: jest.Mock;
+    softDelete: jest.Mock;
+  };
   let presenceService: {
     markOnline: jest.Mock;
     markOffline: jest.Mock;
     listOnlineUsers: jest.Mock;
   };
-  let server: { emit: jest.Mock };
+  let server: { emit: jest.Mock; to: jest.Mock; __roomEmit: jest.Mock };
 
   const user = { id: 'user-1' };
   const author = {
@@ -45,9 +50,33 @@ describe('ChatGateway', () => {
     isActive: true,
   };
 
+  function buildMessage(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      id: 'm1',
+      channelId: 'channel-1',
+      authorId: 'user-1',
+      content: 'hi',
+      type: 'TEXT',
+      replyToId: null,
+      editedAt: null,
+      deletedAt: null,
+      createdAt: new Date('2026-07-10T00:00:00.000Z'),
+      author,
+      attachments: [],
+      linkPreview: null,
+      replyTo: null,
+      ...overrides,
+    };
+  }
+
   beforeEach(async () => {
     channelsService = { listForUser: jest.fn(), isMember: jest.fn() };
-    messagesService = { create: jest.fn() };
+    messagesService = {
+      create: jest.fn(),
+      getById: jest.fn(),
+      update: jest.fn(),
+      softDelete: jest.fn(),
+    };
     presenceService = {
       markOnline: jest.fn(),
       markOffline: jest.fn(),
@@ -65,7 +94,12 @@ describe('ChatGateway', () => {
     }).compile();
 
     gateway = module.get(ChatGateway);
-    server = { emit: jest.fn() };
+    const roomEmit = jest.fn();
+    server = {
+      emit: jest.fn(),
+      to: jest.fn().mockReturnValue({ emit: roomEmit }),
+      __roomEmit: roomEmit,
+    };
     gateway.server = server as unknown as Server;
   });
 
@@ -158,19 +192,8 @@ describe('ChatGateway', () => {
 
     it('persists the message, relays to the room excluding the sender, and acks with the message', async () => {
       channelsService.isMember.mockResolvedValue(true);
-      const created = {
-        id: 'm1',
-        channelId: 'channel-1',
-        authorId: 'user-1',
-        content: 'hi',
-        type: 'TEXT',
-        replyToId: null,
-        editedAt: null,
-        deletedAt: null,
-        createdAt: new Date('2026-07-10T00:00:00.000Z'),
-        author,
-      };
-      messagesService.create.mockResolvedValue(created);
+      const created = buildMessage();
+      messagesService.create.mockResolvedValue({ message: created });
       const socket = fakeSocket(user);
 
       const ack = await gateway.handleMessageSend(asGatewaySocket(socket), {
@@ -182,11 +205,152 @@ describe('ChatGateway', () => {
         channelId: 'channel-1',
         authorId: 'user-1',
         content: 'hi',
+        replyToId: undefined,
+        attachments: undefined,
       });
       expect(socket.to).toHaveBeenCalledWith('channel:channel-1');
       expect(socket.__roomEmit).toHaveBeenCalledWith(
         SocketEvent.MESSAGE_NEW,
         expect.objectContaining({ id: 'm1', content: 'hi' }),
+      );
+      expect(ack).toHaveProperty('message.id', 'm1');
+    });
+
+    it('relays the error from MessagesService.create (e.g. attachment size mismatch) as the ack', async () => {
+      channelsService.isMember.mockResolvedValue(true);
+      messagesService.create.mockResolvedValue({
+        error: 'Attachment size does not match the uploaded file',
+      });
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleMessageSend(asGatewaySocket(socket), {
+        channelId: 'channel-1',
+        content: '',
+        attachments: [
+          {
+            objectKey: 'k',
+            fileName: 'f',
+            mimeType: 'image/png',
+            sizeBytes: 1,
+          },
+        ],
+      });
+
+      expect(ack).toEqual({
+        error: 'Attachment size does not match the uploaded file',
+      });
+      expect(socket.to).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleMessageEdit', () => {
+    it('returns an error ack for an invalid payload', async () => {
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleMessageEdit(asGatewaySocket(socket), {
+        messageId: 'm1',
+        content: '',
+      });
+
+      expect(ack).toEqual({ error: 'Invalid message payload' });
+      expect(messagesService.getById).not.toHaveBeenCalled();
+    });
+
+    it('returns an error ack when the message does not exist', async () => {
+      messagesService.getById.mockResolvedValue(null);
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleMessageEdit(asGatewaySocket(socket), {
+        messageId: 'm1',
+        content: 'new',
+      });
+
+      expect(ack).toEqual({ error: 'Message not found' });
+    });
+
+    it('returns an error ack when the requester is not the author', async () => {
+      messagesService.getById.mockResolvedValue(
+        buildMessage({ authorId: 'user-2' }),
+      );
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleMessageEdit(asGatewaySocket(socket), {
+        messageId: 'm1',
+        content: 'new',
+      });
+
+      expect(ack).toEqual({ error: 'You can only edit your own messages' });
+      expect(messagesService.update).not.toHaveBeenCalled();
+    });
+
+    it('returns an error ack when the message is already deleted', async () => {
+      messagesService.getById.mockResolvedValue(
+        buildMessage({ deletedAt: new Date() }),
+      );
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleMessageEdit(asGatewaySocket(socket), {
+        messageId: 'm1',
+        content: 'new',
+      });
+
+      expect(ack).toEqual({ error: 'Cannot edit a deleted message' });
+      expect(messagesService.update).not.toHaveBeenCalled();
+    });
+
+    it('updates the message and broadcasts message:updated to the whole room, including the sender', async () => {
+      messagesService.getById.mockResolvedValue(buildMessage());
+      const updated = buildMessage({ content: 'new', editedAt: new Date() });
+      messagesService.update.mockResolvedValue(updated);
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleMessageEdit(asGatewaySocket(socket), {
+        messageId: 'm1',
+        content: 'new',
+      });
+
+      expect(messagesService.update).toHaveBeenCalledWith('m1', 'new');
+      expect(server.to).toHaveBeenCalledWith('channel:channel-1');
+      expect(server.__roomEmit).toHaveBeenCalledWith(
+        SocketEvent.MESSAGE_UPDATED,
+        expect.objectContaining({ id: 'm1', content: 'new' }),
+      );
+      expect(socket.to).not.toHaveBeenCalled();
+      expect(ack).toHaveProperty('message.content', 'new');
+    });
+  });
+
+  describe('handleMessageDelete', () => {
+    it('returns an error ack when the requester is not the author', async () => {
+      messagesService.getById.mockResolvedValue(
+        buildMessage({ authorId: 'user-2' }),
+      );
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleMessageDelete(asGatewaySocket(socket), {
+        messageId: 'm1',
+      });
+
+      expect(ack).toEqual({ error: 'You can only delete your own messages' });
+      expect(messagesService.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('soft-deletes and broadcasts message:updated to the whole room', async () => {
+      messagesService.getById.mockResolvedValue(buildMessage());
+      const deleted = buildMessage({ content: '', deletedAt: new Date() });
+      messagesService.softDelete.mockResolvedValue(deleted);
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleMessageDelete(asGatewaySocket(socket), {
+        messageId: 'm1',
+      });
+
+      expect(messagesService.softDelete).toHaveBeenCalledWith('m1');
+      expect(server.to).toHaveBeenCalledWith('channel:channel-1');
+      expect(server.__roomEmit).toHaveBeenCalledWith(
+        SocketEvent.MESSAGE_UPDATED,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() is typed `any` in @types/jest when nested this way
+        expect.objectContaining({ id: 'm1', deletedAt: expect.any(String) }),
       );
       expect(ack).toHaveProperty('message.id', 'm1');
     });

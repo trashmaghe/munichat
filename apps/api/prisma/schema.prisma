@@ -80,6 +80,8 @@ model Message {
   attachments Attachment[]
   linkPreview LinkPreview?
   ticketRef   TicketRef?
+  replyTo     Message?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies     Message[]    @relation("MessageReplies")
 
   @@index([channelId, createdAt, id])
 }
@@ -103,14 +105,21 @@ model Attachment {
 }
 
 model LinkPreview {
-  id          String  @id @default(uuid())
-  messageId   String  @unique
+  id          String            @id @default(uuid())
+  messageId   String            @unique
   url         String
   title       String?
   description String?
   imageUrl    String?
+  status      LinkPreviewStatus
+  fetchedAt   DateTime
 
   message Message @relation(fields: [messageId], references: [id])
+}
+
+enum LinkPreviewStatus {
+  READY
+  FAILED
 }
 
 model TicketRef {
