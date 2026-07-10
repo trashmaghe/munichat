@@ -109,7 +109,7 @@ Run `npm run test:e2e -w apps/api` for the API's end-to-end tests (requires the 
 ## Roadmap
 
 - [x] **Phase 1 — Foundation**: monorepo, Docker Compose data services, Prisma schema, NestJS health check, React skeleton, CI.
-- [ ] **Phase 2 — Auth**: Active Directory (LDAPS) login, JWT sessions, channel sync from `memberOf`.
+- [x] **Phase 2 — Auth**: Active Directory (LDAPS) login, JWT sessions, channel sync from `memberOf`.
 - [ ] **Phase 3 — Chat core**: Socket.IO gateway, message history, channels UI, presence, typing indicators.
 - [ ] **Phase 4 — Rich content**: file uploads (MinIO), link previews, message edit/delete/reply.
 - [ ] **Phase 5 — GLPI**: `/ticket` slash command, ticket cards, webhook-driven status updates.
