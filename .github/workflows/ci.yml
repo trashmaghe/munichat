@@ -132,26 +132,18 @@ jobs:
       - run: |
           ldapadd -x -D "$LDAP_BIND_DN" -w "$LDAP_ADMIN_PASSWORD" -H "$LDAP_URL" -f docker/ldap/bootstrap.ldif
 
-      # TEMPORARY diagnostic: e2e login/channel-sync is failing to find AD
-      # group membership on a fresh CI boot. This inspects the LDAP server
-      # directly (authenticated, both by explicit attribute name and "+" for
-      # all operational attributes) to tell apart "memberof overlay isn't
-      # active" from "it's active but not reachable via our app's query
-      # shape". Never fails the job - diagnostic only. Remove once resolved.
+      # TEMPORARY diagnostic (round 2): confirmed the memberof overlay isn't
+      # active at all (memberOf is absent even requesting "* +" - every
+      # operational attribute - on jsilva's entry). Capture the container's
+      # own bootstrap log to see whether osixia's entrypoint attempted to
+      # configure the overlay and what happened. Never fails the job.
+      # Remove once resolved.
       - name: Diagnose memberOf
         run: |
-          echo "--- ti group's own member: list ---"
-          ldapsearch -x -D "$LDAP_BIND_DN" -w "$LDAP_ADMIN_PASSWORD" -H "$LDAP_URL" \
-            -b "cn=ti,ou=groups,dc=munichat,dc=local" -s base member || true
-          echo "--- jsilva, explicit memberOf ---"
-          ldapsearch -x -D "$LDAP_BIND_DN" -w "$LDAP_ADMIN_PASSWORD" -H "$LDAP_URL" \
-            -b "uid=jsilva,ou=people,dc=munichat,dc=local" -s base memberOf || true
-          echo "--- jsilva, all attrs incl. operational (+) ---"
-          ldapsearch -x -D "$LDAP_BIND_DN" -w "$LDAP_ADMIN_PASSWORD" -H "$LDAP_URL" \
-            -b "uid=jsilva,ou=people,dc=munichat,dc=local" -s base '*' '+' || true
-          echo "--- is the memberof overlay loaded in cn=config? ---"
-          ldapsearch -x -D "$LDAP_BIND_DN" -w "$LDAP_ADMIN_PASSWORD" -H "$LDAP_URL" \
-            -b "cn=config" '(objectClass=olcMemberOf)' || true
+          echo "--- openldap container full log ---"
+          docker logs "$(docker ps --filter ancestor=osixia/openldap:1.5.0 --format '{{.ID}}')" 2>&1 || true
+          echo "--- cn=config olcDatabase entries (unauthenticated attempt) ---"
+          ldapsearch -x -H "$LDAP_URL" -b "cn=config" -s sub '(objectClass=olcDatabaseConfig)' dn || true
 
       # Same reasoning as the LDAP seed step above: GitHub Actions service
       # containers can't mount local volumes, so unlike docker-compose's
