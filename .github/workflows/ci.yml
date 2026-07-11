@@ -44,21 +44,11 @@ jobs:
           LDAP_ENABLE_MEMBEROF: "true"
         ports:
           - 1389:389
+        # rootDSE query (-s base -b ''), not our own base DN: that DN doesn't
+        # exist until the ldapadd seed step below runs, so checking it here
+        # would report unhealthy forever regardless of whether slapd is up.
         options: >-
-          --health-cmd "ldapsearch -x -H ldap://localhost -b dc=munichat,dc=local"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-      minio:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: test_minio_admin
-          MINIO_ROOT_PASSWORD: test_minio_password
-        ports:
-          - 9000:9000
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-cmd "ldapsearch -x -H ldap://localhost -s base -b '' '(objectclass=*)'"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -93,6 +83,32 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # MinIO isn't declared under `services:` because Actions' service
+      # containers only support image/env/ports/volumes/options - there's no
+      # way to pass the `server /data` command the image requires. Without
+      # it, minio/minio just prints its own CLI help and exits immediately
+      # (any tag, not a :latest-specific regression), which is what was
+      # failing here. Run it directly instead, with our own readiness wait
+      # since it no longer gets the automatic "wait until healthy" gate that
+      # `services:` containers get before the job's first step runs.
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER="$MINIO_ROOT_USER" \
+            -e MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
+            minio/minio server /data
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:9000/minio/health/live >/dev/null 2>&1; then
+              echo "MinIO is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::MinIO did not become healthy in time"
+          docker logs minio
+          exit 1
 
       - uses: actions/setup-node@v4
         with:
