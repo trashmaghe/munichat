@@ -6,6 +6,10 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
+# packages/shared/tsconfig.json and apps/api/tsconfig.json both
+# `extends "../../tsconfig.base.json"` — tsc needs it on disk at build time
+# or it fails with TS5083 (Cannot read file '.../tsconfig.base.json').
+COPY tsconfig.base.json ./tsconfig.base.json
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
