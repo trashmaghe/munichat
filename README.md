@@ -111,6 +111,7 @@ Run `npm run test:e2e -w apps/api` for the API's end-to-end tests (requires the 
 - [x] **Phase 1 — Foundation**: monorepo, Docker Compose data services, Prisma schema, NestJS health check, React skeleton, CI.
 - [x] **Phase 2 — Auth**: Active Directory (LDAPS) login, JWT sessions, channel sync from `memberOf`.
 - [x] **Phase 3 — Chat core**: Socket.IO gateway, message history, channels UI, presence, typing indicators.
-- [ ] **Phase 4 — Rich content**: file uploads (MinIO), link previews, message edit/delete/reply.
-- [ ] **Phase 5 — GLPI**: `/ticket` slash command, ticket cards, webhook-driven status updates.
-- [ ] **Phase 6 — Polish**: PWA, browser notifications, full-text search, rate limiting, production Docker images.
+- [x] **Phase 4 — Rich content**: file uploads (MinIO), link previews, message edit/delete/reply.
+- [x] **Phase 5 — GLPI**: `/ticket` slash command, ticket cards, webhook-driven status updates.
+- [x] **Phase 6 — Polish**: PWA, browser notifications, full-text search, rate limiting, production Docker images.
+- [ ] **Phase 7 — 
