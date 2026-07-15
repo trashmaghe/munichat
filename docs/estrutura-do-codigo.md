@@ -2,7 +2,7 @@
 
 > Documento em português (pt-BR) descrevendo a organização completa do
 > repositório: o que é cada pasta, cada módulo e como as peças se conectam.
-> Reflete o estado atual do código (Fases 1–5 completas, Fase 6 parcial).
+> Reflete o estado atual do código (Fases 1–6 completas).
 
 ## Visão geral
 
@@ -82,11 +82,27 @@ os dois lados nunca divergem sobre nomes de evento.
 ## `apps/api` — Backend (NestJS)
 
 NestJS 11 em TypeScript. Ponto de entrada em `src/main.ts`, que configura:
-CORS, `cookie-parser`, `ValidationPipe` global (whitelist + transform) e o
+CORS, `cookie-parser`, `ValidationPipe` global (whitelist + transform),
+`trust proxy` (para o `req.ip` resolver corretamente atrás do ingress) e o
 **adaptador Redis do Socket.IO** (para escalar horizontalmente).
 
 O `src/app.module.ts` importa todos os módulos de funcionalidade. Cada
 funcionalidade é um módulo NestJS isolado. Abaixo, módulo a módulo.
+
+### Rate limiting (Fase 6)
+
+`ThrottlerModule.forRootAsync` em `app.module.ts`, com storage no **Redis**
+(`@nest-lab/throttler-storage-redis`, sobre o mesmo `ioredis`/`REDIS_URL` já
+usado no resto do app) e um `ThrottlerGuard` global (`APP_GUARD`). Isso garante
+que o limite seja consistente entre **múltiplas instâncias** da API atrás do
+HPA do Kubernetes — cada instância não tem seu próprio contador isolado.
+
+- Limite global: 100 req/min por IP.
+- `POST /auth/login`: 5/min por IP (`@Throttle` no controller) — o de maior
+  valor de segurança, protege contra força bruta.
+- `POST /auth/refresh` e `POST /files/presign`: 20/min por IP.
+- O gateway WebSocket **não** passa pelo guard HTTP (`message:send` não é
+  limitado por aqui); ficou documentado como não-feito, não implementado.
 
 ### `prisma/` — Banco de dados
 
@@ -147,11 +163,34 @@ AD), nunca no meio da sessão. Isso simplifica a lógica de *rooms* do WebSocket
 - `messages.service.ts` — cria mensagens (inclusive detectando o comando
   `/ticket` e URLs para link preview), busca histórico paginado por keyset,
   edita e faz soft delete. Valida o tamanho real dos anexos contra o MinIO
-  antes de persistir.
+  antes de persistir. Também tem o método `search` (busca full-text, ver
+  abaixo).
 - `messages.controller.ts` — `GET /channels/:channelId/messages` (histórico).
+- `messages-search.controller.ts` — `GET /messages/search?q&channelId&cursor`
+  (Fase 6). Rota separada (não aninhada em `/channels/:id`) porque a busca
+  pode cobrir vários canais de uma vez.
 - `message-response.mapper.ts` — mapeia entidade → DTO e codifica/decodifica o
-  *cursor* de paginação.
-- `dto/message-history-query.dto.ts` — validação dos parâmetros de query.
+  *cursor* de paginação (reaproveitado pela busca também).
+- `dto/message-history-query.dto.ts`, `dto/message-search-query.dto.ts` —
+  validação dos parâmetros de query.
+
+**Busca full-text (Fase 6):** usa `tsvector`/`tsquery` nativos do Postgres com
+dicionário `portuguese`. Como `to_tsvector(regconfig, text)` é `STABLE` (não
+`IMMUTABLE`), não dá para indexar a expressão diretamente — a migration
+`20260715120000_add_message_search_tsvector` cria uma função SQL
+`message_search_vector(content)` marcada `IMMUTABLE` (o padrão documentado do
+Postgres para configuração fixa) e um índice GIN sobre ela. Essa migration é
+**escrita à mão**, não gerada pelo `prisma migrate dev` — o `schema.prisma`
+continua sem nenhuma coluna nova, porque o Prisma não modela `tsvector`.
+
+O serviço só usa `$queryRaw` para a query de busca/ranking (que precisa do
+operador `@@`); os ids retornados são então buscados de novo via
+`prisma.message.findMany` normal, reaproveitando o mesmo `MESSAGE_INCLUDE` e
+`toMessageDto` do histórico — a parte "crua" fica isolada a uma única query
+pequena. **Regra de autorização:** só busca em canais dos quais o usuário é
+membro (`channelId` explícito é checado com `isMember`; sem `channelId`, a
+busca cobre todos os canais retornados por `listForUser`). Mensagens com
+`deletedAt` preenchido são sempre excluídas.
 
 ### `chat/` — Tempo real (Fase 3)
 
@@ -220,9 +259,9 @@ webhook atualiza o card em tempo real via WebSocket.
 
 ### `test/` — Testes end-to-end
 
-`auth`, `chat`, `glpi`, `health`, `rich-content` — testes Supertest rodando
-contra Postgres, Redis, LDAP e MinIO **reais** (não mocks), tanto localmente
-quanto no CI.
+`auth`, `chat`, `glpi`, `health`, `rich-content`, `rate-limit`,
+`message-search` — testes Supertest rodando contra Postgres, Redis, LDAP e
+MinIO **reais** (não mocks), tanto localmente quanto no CI.
 
 ---
 
@@ -262,21 +301,56 @@ apps/web/src/
 | `MessageComposer.tsx` | Caixa de escrever/enviar (dispara `typing`, upload, `/ticket`). |
 | `TypingIndicator.tsx` | "Fulano está digitando…". |
 | `PresenceDot.tsx` | Bolinha verde de online. |
-| `UserMenu.tsx` | Menu do usuário (logout). |
+| `MessageSearch.tsx` | Campo de busca (Fase 6) no topo da sidebar — *debounced*, mostra resultados com o termo destacado, cada resultado leva ao canal da mensagem. |
+| `InstallPrompt.tsx` | Prompt de instalação da PWA (Fase 6) — só aparece depois que o navegador dispara `beforeinstallprompt`; fica invisível (`null`) até lá. |
+| `UserMenu.tsx` | Menu do usuário: logout e o botão de ligar/desligar notificações do navegador (Fase 6). |
 | `NoChannelSelected.tsx` | Estado vazio. |
 
 ### Camada `lib/`
 
 - `api-client.ts` — cliente HTTP base (credenciais/cookies, tratamento de 401).
-- `auth-api.ts`, `chat-api.ts`, `files-api.ts` — chamadas específicas.
+- `auth-api.ts`, `chat-api.ts`, `files-api.ts` — chamadas específicas (inclui
+  `fetchMessageSearch`, Fase 6).
 - `socket.ts` — cria/gerencia a conexão socket.io-client.
 - `message-cache.ts` — insere mensagens ao vivo no cache do React Query.
 - `queryClient.ts` — configuração do TanStack Query.
+- `notifications.ts` (Fase 6) — `shouldNotify()`, uma função pura (fácil de
+  testar sem mockar `Notification`/`document` globais) que decide se uma
+  notificação deve disparar, e `showMessageNotification()`, que efetivamente
+  cria a notificação do navegador.
 
 Detalhe de arquitetura: o `SocketProvider` é montado **dentro** do layout
 autenticado, então a rota `/login` nunca abre um socket. Um `connect_error` do
 socket limpa o usuário em cache do mesmo jeito que um 401 REST, então o
 `ProtectedRoute` redireciona igual nos dois casos.
+
+### Notificações do navegador (Fase 6)
+
+`SocketProvider.tsx` chama `shouldNotify()` a cada `message:new`. A decisão
+combina: preferência do usuário (`useUIStore.notificationsEnabled`, persistida
+em `localStorage`, independente da permissão do navegador — que o JS não
+consegue revogar sozinho), permissão real (`Notification.permission`), se a
+mensagem é do próprio usuário, e se a aba está visível **e** no canal daquela
+mensagem (só notifica quando pelo menos uma das duas condições falha).
+Notificações usam `tag: channel-{id}` para agrupar em vez de empilhar; clicar
+foca a aba e navega para o canal via `router.navigate()` (o `router` do
+`react-router-dom` é importado diretamente, fora de um componente). O botão de
+permissão fica no `UserMenu` — só chama `Notification.requestPermission()`
+quando o usuário clica, nunca automaticamente. Push real (Web Push/VAPID, para
+notificar com a aba fechada) não foi implementado.
+
+### PWA (Fase 6)
+
+`vite-plugin-pwa` (modo `generateSW`) em `vite.config.ts`. Manifesto
+(`manifest.webmanifest`, gerado no build) com ícones derivados do brasão de
+Nova Serrana (`docs/assets/brasao-pmns.png`, redimensionado para
+`apps/web/public/pwa-192x192.png` / `pwa-512x512.png` / `apple-touch-icon.png`).
+O service worker faz *precache* só do *app shell* (JS/CSS/fontes/imagens do
+build) — **nenhuma** rota da API é colocada em `runtimeCaching`, de propósito:
+toda chamada é autenticada e pode carregar dado específico do usuário, então
+tem que sempre ir para a rede, nunca ficar em cache reaproveitável entre
+sessões/usuários. WebSocket não é interceptável por *service worker* de jeito
+nenhum (não é evento `fetch`), então não precisou de exclusão explícita.
 
 ---
 
@@ -331,8 +405,5 @@ JWT, API e GLPI. As variáveis do frontend precisam do prefixo `VITE_`.
 | 3 — Chat | ✅ Completa | Gateway Socket.IO, histórico, presença, digitação. |
 | 4 — Conteúdo rico | ✅ Completa | Uploads, link preview, editar/apagar/responder. |
 | 5 — GLPI | ✅ Completa | `/ticket`, cards, webhook de status. |
-| 6 — Polimento | 🟡 Parcial | **Feito:** imagens Docker + Kubernetes. **Falta:** busca full-text, rate limiting, PWA, notificações do navegador. |
+| 6 — Polimento | ✅ Completa | Imagens Docker + Kubernetes, busca full-text, rate limiting, PWA, notificações do navegador. |
 | 7 — Futuro | ⬜ Planejamento | Ver [ideias-futuras.md](ideias-futuras.md). |
-
-Os itens que faltam na Fase 6 têm um prompt de implementação pronto em
-[prompt-fase-6.md](prompt-fase-6.md).
