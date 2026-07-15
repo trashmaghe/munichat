@@ -1,5 +1,6 @@
 import { useChannels } from '@/hooks/useChannels';
 import { ChannelListItem } from '@/components/chat/ChannelListItem';
+import { InstallPrompt } from '@/components/chat/InstallPrompt';
 import { MessageSearch } from '@/components/chat/MessageSearch';
 import { UserMenu } from '@/components/chat/UserMenu';
 
@@ -18,6 +19,7 @@ export function ChannelSidebar() {
           <ChannelListItem key={channel.id} channel={channel} />
         ))}
       </nav>
+      <InstallPrompt />
       <UserMenu />
     </aside>
   );
