@@ -37,9 +37,21 @@ function extractCookie(
   return cookie.split(';')[0];
 }
 
-function waitForEvent<T>(socket: Socket, event: string): Promise<T> {
+// Wait for the message:updated event for a specific message id, ignoring any
+// updates for other messages. Even with --runInBand this makes the assertion
+// robust against stray broadcasts (e.g. other channel activity).
+function waitForMessageUpdate(
+  socket: Socket,
+  messageId: string,
+): Promise<Message> {
   return new Promise((resolve) => {
-    socket.once(event, (payload: T) => resolve(payload));
+    const handler = (payload: Message) => {
+      if (payload.id === messageId) {
+        socket.off(SocketEvent.MESSAGE_UPDATED, handler);
+        resolve(payload);
+      }
+    };
+    socket.on(SocketEvent.MESSAGE_UPDATED, handler);
   });
 }
 
@@ -264,10 +276,7 @@ describe('GLPI ticketing (e2e)', () => {
       // re-fetch this via GlpiService rather than trust the payload's status.
       ticketStatusByGlpiId.set(glpiTicketId, 6);
 
-      const updatedPromise = waitForEvent<Message>(
-        socketB,
-        SocketEvent.MESSAGE_UPDATED,
-      );
+      const updatedPromise = waitForMessageUpdate(socketB, sent.id);
 
       const webhookBody = { id: glpiTicketId };
       await request(app.getHttpServer())
