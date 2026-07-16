@@ -29,4 +29,8 @@ export class ChannelsService {
     });
     return membership !== null;
   }
+
+  async findByName(name: string): Promise<Channel | null> {
+    return this.prisma.channel.findUnique({ where: { name } });
+  }
 }

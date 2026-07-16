@@ -271,6 +271,25 @@ export class MessagesService {
     return { message };
   }
 
+  // For bot/system-authored messages (e.g. Tactical RMM alerts) rather than
+  // user input, so it deliberately skips the /ticket regex and link-preview
+  // detection in create() — neither applies to a pre-formatted system message.
+  async createSystemMessage(
+    channelId: string,
+    authorId: string,
+    content: string,
+  ): Promise<MessageWithExtras> {
+    return this.prisma.message.create({
+      data: {
+        channelId,
+        authorId,
+        content,
+        type: MessageType.SYSTEM,
+      },
+      include: MESSAGE_INCLUDE,
+    });
+  }
+
   async update(id: string, content: string): Promise<MessageWithExtras> {
     return this.prisma.message.update({
       where: { id },

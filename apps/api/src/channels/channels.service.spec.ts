@@ -9,6 +9,9 @@ describe('ChannelsService', () => {
       findMany: jest.Mock;
       findUnique: jest.Mock;
     };
+    channel: {
+      findUnique: jest.Mock;
+    };
   };
 
   const channel = {
@@ -38,6 +41,7 @@ describe('ChannelsService', () => {
   beforeEach(async () => {
     prisma = {
       channelMember: { findMany: jest.fn(), findUnique: jest.fn() },
+      channel: { findUnique: jest.fn() },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -108,6 +112,27 @@ describe('ChannelsService', () => {
       const result = await service.isMember('user-1', 'channel-1');
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe('findByName', () => {
+    it('returns the channel matching the given name', async () => {
+      prisma.channel.findUnique.mockResolvedValue(channel);
+
+      const result = await service.findByName('ti');
+
+      expect(result).toEqual(channel);
+      expect(prisma.channel.findUnique).toHaveBeenCalledWith({
+        where: { name: 'ti' },
+      });
+    });
+
+    it('returns null when no channel matches', async () => {
+      prisma.channel.findUnique.mockResolvedValue(null);
+
+      const result = await service.findByName('missing');
+
+      expect(result).toBeNull();
     });
   });
 });

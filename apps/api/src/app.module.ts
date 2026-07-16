@@ -16,6 +16,8 @@ import { ChatModule } from './chat/chat.module';
 import { FilesModule } from './files/files.module';
 import { LinkPreviewModule } from './link-preview/link-preview.module';
 import { GlpiWebhookModule } from './glpi/glpi-webhook.module';
+import { RmmModule } from './rmm/rmm.module';
+import { RmmWebhookModule } from './rmm/rmm-webhook.module';
 import { createBullConnection } from './queue/bullmq-connection';
 
 @Module({
@@ -53,6 +55,8 @@ import { createBullConnection } from './queue/bullmq-connection';
     FilesModule,
     LinkPreviewModule,
     GlpiWebhookModule,
+    RmmModule,
+    RmmWebhookModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

@@ -474,6 +474,35 @@ describe('MessagesService', () => {
     });
   });
 
+  describe('createSystemMessage', () => {
+    it('persists a SYSTEM message authored by the given user', async () => {
+      const created = buildMessage('m1', '2026-07-10T00:00:01.000Z', {
+        type: 'SYSTEM',
+        authorId: 'rmm-bot-1',
+        content: 'PC-12 has not checked in for 30 minutes',
+      });
+      prisma.message.create.mockResolvedValue(created);
+
+      const result = await service.createSystemMessage(
+        'channel-1',
+        'rmm-bot-1',
+        'PC-12 has not checked in for 30 minutes',
+      );
+
+      expect(result).toBe(created);
+      expect(prisma.message.create).toHaveBeenCalledWith({
+        data: {
+          channelId: 'channel-1',
+          authorId: 'rmm-bot-1',
+          content: 'PC-12 has not checked in for 30 minutes',
+          type: 'SYSTEM',
+        },
+        include: MESSAGE_INCLUDE,
+      });
+      expect(queue.add).not.toHaveBeenCalled();
+    });
+  });
+
   describe('update', () => {
     it('sets content and editedAt', async () => {
       const updated = buildMessage('m1', '2026-07-10T00:00:01.000Z', {
