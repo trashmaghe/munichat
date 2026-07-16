@@ -30,3 +30,13 @@ export const rmmAlertWebhookSchema = z.object({
 });
 
 export type RmmAlertWebhookPayload = z.infer<typeof rmmAlertWebhookSchema>;
+
+// The desktop URL carries a live, one-time MeshCentral login token — treat it
+// like a bearer credential (never logged, never persisted, never broadcast).
+export const rmmRemoteControlUrlsSchema = z.object({
+  desktopUrl: z.string(),
+  terminalUrl: z.string(),
+  fileUrl: z.string(),
+});
+
+export type RmmRemoteControlUrls = z.infer<typeof rmmRemoteControlUrlsSchema>;

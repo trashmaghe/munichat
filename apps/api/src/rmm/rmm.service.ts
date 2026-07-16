@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RmmAgentSummary } from '@munichat/shared';
+import { RmmAgentSummary, RmmRemoteControlUrls } from '@munichat/shared';
 
 const REQUEST_TIMEOUT_MS = 10000;
 
@@ -29,6 +29,12 @@ function toAgentSummary(raw: RawAgent): RmmAgentSummary {
     platform: raw.plat,
     status: raw.status,
   };
+}
+
+interface RawMeshControlUrls {
+  control: string;
+  terminal: string;
+  file: string;
 }
 
 @Injectable()
@@ -79,6 +85,30 @@ export class RmmService {
 
     const body = (await response.json()) as RawAgent;
     return toAgentSummary(body);
+  }
+
+  // Mediates a MeshCentral "Take Control" session through Tactical RMM's own
+  // API — MuniChat never talks to MeshCentral directly or holds credentials
+  // for it. The returned URLs each embed a one-time MeshCentral login token:
+  // treat them as live bearer credentials (see RmmController.getRemoteControl).
+  async getMeshControlUrls(agentId: string): Promise<RmmRemoteControlUrls> {
+    const response = await this.request(() =>
+      fetch(`${this.rmmUrl}/agents/${agentId}/meshcentral/`, {
+        headers: this.headers,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      }),
+    );
+
+    if (!response.ok) {
+      throw new RmmUnavailableError();
+    }
+
+    const body = (await response.json()) as RawMeshControlUrls;
+    return {
+      desktopUrl: body.control,
+      terminalUrl: body.terminal,
+      fileUrl: body.file,
+    };
   }
 
   private async request(fn: () => Promise<Response>): Promise<Response> {

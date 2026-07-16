@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Channel, ChannelMember, User } from '@prisma/client';
+import { Channel, ChannelMember, MemberRole, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -32,5 +32,12 @@ export class ChannelsService {
 
   async findByName(name: string): Promise<Channel | null> {
     return this.prisma.channel.findUnique({ where: { name } });
+  }
+
+  async isChannelAdmin(userId: string, channelId: string): Promise<boolean> {
+    const membership = await this.prisma.channelMember.findUnique({
+      where: { userId_channelId: { userId, channelId } },
+    });
+    return membership?.role === MemberRole.ADMIN;
   }
 }

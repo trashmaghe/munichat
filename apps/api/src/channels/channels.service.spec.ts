@@ -135,4 +135,43 @@ describe('ChannelsService', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('isChannelAdmin', () => {
+    it('returns true when the membership role is ADMIN', async () => {
+      prisma.channelMember.findUnique.mockResolvedValue({
+        userId: 'user-1',
+        channelId: 'channel-1',
+        role: 'ADMIN',
+      });
+
+      const result = await service.isChannelAdmin('user-1', 'channel-1');
+
+      expect(result).toBe(true);
+      expect(prisma.channelMember.findUnique).toHaveBeenCalledWith({
+        where: {
+          userId_channelId: { userId: 'user-1', channelId: 'channel-1' },
+        },
+      });
+    });
+
+    it('returns false when the membership role is MEMBER', async () => {
+      prisma.channelMember.findUnique.mockResolvedValue({
+        userId: 'user-1',
+        channelId: 'channel-1',
+        role: 'MEMBER',
+      });
+
+      const result = await service.isChannelAdmin('user-1', 'channel-1');
+
+      expect(result).toBe(false);
+    });
+
+    it('returns false when no membership row exists', async () => {
+      prisma.channelMember.findUnique.mockResolvedValue(null);
+
+      const result = await service.isChannelAdmin('user-1', 'channel-1');
+
+      expect(result).toBe(false);
+    });
+  });
 });

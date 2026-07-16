@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { rmmAgentSummarySchema, rmmAlertWebhookSchema } from './rmm.dto';
+import {
+  rmmAgentSummarySchema,
+  rmmAlertWebhookSchema,
+  rmmRemoteControlUrlsSchema,
+} from './rmm.dto';
 
 describe('rmmAgentSummarySchema', () => {
   it('accepts a valid agent summary', () => {
@@ -53,5 +57,25 @@ describe('rmmAlertWebhookSchema', () => {
     const withoutResolved: Record<string, unknown> = { ...base };
     delete withoutResolved.resolved;
     expect(() => rmmAlertWebhookSchema.parse(withoutResolved)).toThrow();
+  });
+});
+
+describe('rmmRemoteControlUrlsSchema', () => {
+  it('accepts a valid set of control URLs', () => {
+    const result = rmmRemoteControlUrlsSchema.parse({
+      desktopUrl: 'https://mesh.example.org/control?login=token',
+      terminalUrl: 'https://mesh.example.org/terminal?login=token',
+      fileUrl: 'https://mesh.example.org/files?login=token',
+    });
+    expect(result.desktopUrl).toContain('control');
+  });
+
+  it('rejects a payload missing a required URL', () => {
+    expect(() =>
+      rmmRemoteControlUrlsSchema.parse({
+        desktopUrl: 'https://mesh.example.org/control?login=token',
+        terminalUrl: 'https://mesh.example.org/terminal?login=token',
+      }),
+    ).toThrow();
   });
 });
