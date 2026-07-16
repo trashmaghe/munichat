@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { MessageType } from '@prisma/client';
+import { MessageType, Prisma } from '@prisma/client';
 import { PendingAttachment } from '@munichat/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilesService } from '../files/files.service';
@@ -33,6 +33,13 @@ export interface GetHistoryOptions {
 export interface HistoryPage {
   messages: MessageWithExtras[];
   nextCursor: string | null;
+}
+
+export interface SearchMessagesOptions {
+  query: string;
+  channelIds: string[];
+  cursor?: string;
+  limit: number;
 }
 
 export interface CreateMessageInput {
@@ -84,6 +91,58 @@ export class MessagesService {
     const nextCursor = hasMore ? encodeCursor(page[page.length - 1]) : null;
 
     return { messages: page.reverse(), nextCursor };
+  }
+
+  async search({
+    query,
+    channelIds,
+    cursor,
+    limit,
+  }: SearchMessagesOptions): Promise<HistoryPage> {
+    if (channelIds.length === 0) {
+      return { messages: [], nextCursor: null };
+    }
+
+    const decoded = cursor ? decodeCursor(cursor) : null;
+
+    // Only the ranking/scoping query touches raw SQL (tsvector can't be
+    // expressed in a Prisma where-clause); the matching rows are then
+    // re-fetched through the normal Prisma client so hydration reuses
+    // MESSAGE_INCLUDE/toMessageDto exactly like getHistory does.
+    const matches = await this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT "id"
+      FROM "Message"
+      WHERE "channelId" IN (${Prisma.join(channelIds)})
+        AND "deletedAt" IS NULL
+        AND message_search_vector("content") @@ websearch_to_tsquery('portuguese', ${query})
+        ${
+          decoded
+            ? Prisma.sql`AND ("createdAt", "id") < (${decoded.createdAt}, ${decoded.id})`
+            : Prisma.empty
+        }
+      ORDER BY "createdAt" DESC, "id" DESC
+      LIMIT ${limit + 1}
+    `);
+
+    const hasMore = matches.length > limit;
+    const page = matches.slice(0, limit);
+    if (page.length === 0) {
+      return { messages: [], nextCursor: null };
+    }
+
+    const rows = await this.prisma.message.findMany({
+      where: { id: { in: page.map((row) => row.id) } },
+      include: MESSAGE_INCLUDE,
+    });
+    const rowsById = new Map(rows.map((row) => [row.id, row]));
+    const messages = page
+      .map((row) => rowsById.get(row.id))
+      .filter((row): row is MessageWithExtras => row !== undefined);
+
+    const lastRow = rows.find((row) => row.id === page[page.length - 1].id);
+    const nextCursor = hasMore && lastRow ? encodeCursor(lastRow) : null;
+
+    return { messages, nextCursor };
   }
 
   async getById(id: string): Promise<MessageWithExtras | null> {

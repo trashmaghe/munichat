@@ -27,6 +27,7 @@ describe('MessagesService', () => {
     user: {
       findUniqueOrThrow: jest.Mock;
     };
+    $queryRaw: jest.Mock;
   };
   let filesService: { getRealObjectSize: jest.Mock };
   let glpiService: { createTicket: jest.Mock };
@@ -81,6 +82,7 @@ describe('MessagesService', () => {
       user: {
         findUniqueOrThrow: jest.fn(),
       },
+      $queryRaw: jest.fn(),
     };
     filesService = { getRealObjectSize: jest.fn() };
     glpiService = { createTicket: jest.fn() };
@@ -162,6 +164,85 @@ describe('MessagesService', () => {
         take: 3,
         include: MESSAGE_INCLUDE,
       });
+    });
+  });
+
+  describe('search', () => {
+    it('returns an empty page without querying when channelIds is empty', async () => {
+      const result = await service.search({
+        query: 'crachá',
+        channelIds: [],
+        limit: 20,
+      });
+
+      expect(result).toEqual({ messages: [], nextCursor: null });
+      expect(prisma.$queryRaw).not.toHaveBeenCalled();
+    });
+
+    it('hydrates matched ids through Prisma and preserves the raw query order', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ id: 'm2' }, { id: 'm1' }]);
+      const rowM1 = buildMessage('m1', '2026-07-10T00:00:01.000Z');
+      const rowM2 = buildMessage('m2', '2026-07-10T00:00:02.000Z');
+      // findMany does not guarantee it echoes back the `IN (...)` order.
+      prisma.message.findMany.mockResolvedValue([rowM1, rowM2]);
+
+      const result = await service.search({
+        query: 'crachá',
+        channelIds: ['channel-1'],
+        limit: 20,
+      });
+
+      expect(prisma.message.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['m2', 'm1'] } },
+        include: MESSAGE_INCLUDE,
+      });
+      expect(result.messages.map((m) => m.id)).toEqual(['m2', 'm1']);
+      expect(result.nextCursor).toBeNull();
+    });
+
+    it('sets nextCursor and drops the extra row when limit+1 matches come back', async () => {
+      prisma.$queryRaw.mockResolvedValue([
+        { id: 'm3' },
+        { id: 'm2' },
+        { id: 'm1' },
+      ]);
+      const rows = [
+        buildMessage('m1', '2026-07-10T00:00:01.000Z'),
+        buildMessage('m2', '2026-07-10T00:00:02.000Z'),
+        buildMessage('m3', '2026-07-10T00:00:03.000Z'),
+      ];
+      prisma.message.findMany.mockResolvedValue(rows);
+
+      const result = await service.search({
+        query: 'crachá',
+        channelIds: ['channel-1'],
+        limit: 2,
+      });
+
+      expect(prisma.message.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['m3', 'm2'] } },
+        include: MESSAGE_INCLUDE,
+      });
+      expect(result.messages.map((m) => m.id)).toEqual(['m3', 'm2']);
+      expect(result.nextCursor).toBe(
+        encodeCursor({
+          createdAt: new Date('2026-07-10T00:00:02.000Z'),
+          id: 'm2',
+        }),
+      );
+    });
+
+    it('returns an empty page when no matches are found', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      const result = await service.search({
+        query: 'nonexistent',
+        channelIds: ['channel-1'],
+        limit: 20,
+      });
+
+      expect(result).toEqual({ messages: [], nextCursor: null });
+      expect(prisma.message.findMany).not.toHaveBeenCalled();
     });
   });
 

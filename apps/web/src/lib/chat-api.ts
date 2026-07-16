@@ -3,9 +3,11 @@ import {
   channelMemberSummarySchema,
   channelSummarySchema,
   messageHistoryResponseSchema,
+  messageSearchResponseSchema,
   type ChannelMemberSummary,
   type ChannelSummary,
   type MessageHistoryResponse,
+  type MessageSearchResponse,
 } from '@munichat/shared';
 import { apiFetch } from '@/lib/api-client';
 
@@ -26,4 +28,16 @@ export async function fetchMessageHistory(
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   const res = await apiFetch<unknown>(`/channels/${channelId}/messages${query}`);
   return messageHistoryResponseSchema.parse(res);
+}
+
+export async function fetchMessageSearch(
+  q: string,
+  channelId: string | undefined,
+  cursor: string | undefined,
+): Promise<MessageSearchResponse> {
+  const params = new URLSearchParams({ q });
+  if (channelId) params.set('channelId', channelId);
+  if (cursor) params.set('cursor', cursor);
+  const res = await apiFetch<unknown>(`/messages/search?${params.toString()}`);
+  return messageSearchResponseSchema.parse(res);
 }

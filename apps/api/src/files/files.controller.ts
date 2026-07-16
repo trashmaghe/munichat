@@ -9,6 +9,7 @@ import {
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { User } from '@prisma/client';
 import type { PresignUploadResponse } from '@munichat/shared';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -26,6 +27,7 @@ export class FilesController {
   ) {}
 
   @Post('presign')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   async presign(
     @CurrentUser() user: User,
     @Body() dto: PresignUploadRequestDto,

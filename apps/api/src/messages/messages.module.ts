@@ -5,6 +5,7 @@ import { FilesModule } from '../files/files.module';
 import { GlpiModule } from '../glpi/glpi.module';
 import { QUEUE_NAMES } from '../queue/queue-names';
 import { MessagesController } from './messages.controller';
+import { MessagesSearchController } from './messages-search.controller';
 import { MessagesService } from './messages.service';
 
 @Module({
@@ -14,7 +15,7 @@ import { MessagesService } from './messages.service';
     GlpiModule,
     BullModule.registerQueue({ name: QUEUE_NAMES.LINK_PREVIEW }),
   ],
-  controllers: [MessagesController],
+  controllers: [MessagesController, MessagesSearchController],
   providers: [MessagesService],
   exports: [MessagesService],
 })

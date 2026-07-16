@@ -17,7 +17,7 @@
 
 A self-hosted, real-time chat platform for a municipal government — replacing WhatsApp/Spark with Active Directory authentication, department-based channels, and GLPI ticket creation from chat.
 
-**Status: Phases 1–5 complete; Phase 6 in progress.** Active Directory login, real-time chat (presence, typing, edit/delete/reply), file uploads, link previews, and GLPI ticketing are all working, and the app ships with production Docker images and Kubernetes manifests. The remaining Phase 6 "polish" items — full-text search, rate limiting, PWA, and browser notifications — are **not yet implemented**. See [Roadmap](#roadmap) for the precise breakdown.
+**Status: Phases 1–6 complete.** Active Directory login, real-time chat (presence, typing, edit/delete/reply), file uploads, link previews, GLPI ticketing, full-text message search, Redis-backed rate limiting, browser notifications, and PWA installability are all working, and the app ships with production Docker images and Kubernetes manifests. See [Roadmap](#roadmap) for the precise breakdown.
 
 ## Tech Stack
 
@@ -160,7 +160,7 @@ Run `npm run test:e2e -w apps/api` for the API's end-to-end tests (requires the 
 - [x] **Phase 3 — Chat core**: Socket.IO gateway, message history, channels UI, presence, typing indicators.
 - [x] **Phase 4 — Rich content**: file uploads (MinIO), link previews, message edit/delete/reply.
 - [x] **Phase 5 — GLPI**: `/ticket` slash command, ticket cards, webhook-driven status updates.
-- [~] **Phase 6 — Polish** (partial): production Docker images and Kubernetes manifests are done. **Still open:** full-text search, rate limiting, PWA, and browser notifications.
+- [x] **Phase 6 — Polish**: production Docker images and Kubernetes manifests, Postgres full-text message search, Redis-backed request rate limiting, browser notifications, and PWA installability (offline app shell).
 - [ ] **Phase 7 — Future**: see [docs/ideias-futuras.md](docs/ideias-futuras.md) for candidate features (reactions, read receipts, DMs, admin panel, observability, and more).
 
-> **Note on this roadmap:** items are checked only when the corresponding code exists in this repository. Phases 4 and 5 were previously left unchecked here despite being merged (PRs #3 and #4); the search, rate-limiting, PWA, and notification work for Phase 6 is tracked in [docs/prompt-fase-6.md](docs/prompt-fase-6.md).
+> **Note on this roadmap:** items are checked only when the corresponding code exists in this repository. Phases 4 and 5 were previously left unchecked here despite being merged (PRs #3 and #4) — verify PR merge state independently rather than trusting this checklist alone.

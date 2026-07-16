@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   SocketEvent,
@@ -9,19 +9,42 @@ import {
 } from '@munichat/shared';
 import { getSocket } from '@/lib/socket';
 import { appendMessageToCache, updateMessageInCache } from '@/lib/message-cache';
+import { shouldNotify, showMessageNotification } from '@/lib/notifications';
 import { useChatStore } from '@/stores/useChatStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const TYPING_EXPIRY_MS = 5000;
 const TYPING_PRUNE_INTERVAL_MS = 1000;
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
+  const currentUserIdRef = useRef(currentUser?.id);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUser?.id;
+  }, [currentUser?.id]);
 
   useEffect(() => {
     const socket = getSocket();
 
     function handleMessageNew(message: Message) {
       appendMessageToCache(queryClient, message);
+
+      if (
+        typeof Notification !== 'undefined' &&
+        shouldNotify({
+          message,
+          currentUserId: currentUserIdRef.current,
+          activeChannelId: useChatStore.getState().activeChannelId,
+          documentVisibilityState: document.visibilityState,
+          permission: Notification.permission,
+          notificationsEnabled: useUIStore.getState().notificationsEnabled,
+        })
+      ) {
+        showMessageNotification(message);
+      }
     }
     function handleMessageUpdated(message: Message) {
       updateMessageInCache(queryClient, message.channelId, message);

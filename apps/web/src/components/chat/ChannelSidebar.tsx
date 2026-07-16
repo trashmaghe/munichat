@@ -1,5 +1,7 @@
 import { useChannels } from '@/hooks/useChannels';
 import { ChannelListItem } from '@/components/chat/ChannelListItem';
+import { InstallPrompt } from '@/components/chat/InstallPrompt';
+import { MessageSearch } from '@/components/chat/MessageSearch';
 import { UserMenu } from '@/components/chat/UserMenu';
 
 export function ChannelSidebar() {
@@ -10,12 +12,14 @@ export function ChannelSidebar() {
       <div className="border-b px-3 py-3">
         <p className="text-sm font-medium">MuniChat</p>
       </div>
+      <MessageSearch />
       <nav className="flex-1 overflow-y-auto p-2">
         {isLoading && <p className="px-2 py-1 text-sm text-muted-foreground">Loading channels…</p>}
         {channels?.map((channel) => (
           <ChannelListItem key={channel.id} channel={channel} />
         ))}
       </nav>
+      <InstallPrompt />
       <UserMenu />
     </aside>
   );

@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 
+function getInitialNotificationsEnabled(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem('notificationsEnabled') === 'true';
+}
+
 type Theme = 'light' | 'dark';
 
 function getInitialTheme(): Theme {
@@ -10,6 +15,8 @@ function getInitialTheme(): Theme {
 interface UIState {
   sidebarOpen: boolean;
   toggleSidebar: () => void;
+  notificationsEnabled: boolean;
+  setNotificationsEnabled: (enabled: boolean) => void;
   theme: Theme;
   toggleTheme: () => void;
 }
@@ -17,6 +24,11 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+  notificationsEnabled: getInitialNotificationsEnabled(),
+  setNotificationsEnabled: (enabled) => {
+    localStorage.setItem('notificationsEnabled', String(enabled));
+    set({ notificationsEnabled: enabled });
+  },
   theme: getInitialTheme(),
   toggleTheme: () =>
     set((state) => {
