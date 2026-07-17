@@ -157,6 +157,55 @@ describe('MessageItem', () => {
     expect(screen.getByLabelText('Delete')).toBeInTheDocument();
   });
 
+  it('renders a <video> element for a video attachment', () => {
+    const { container } = render(
+      <MessageItem
+        message={buildMessage({
+          content: '',
+          attachments: [
+            { id: 'a1', fileName: 'clip.mp4', mimeType: 'video/mp4', sizeBytes: 1000 },
+          ],
+        })}
+        isOwn={false}
+        onReply={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    const video = container.querySelector('video');
+    expect(video).not.toBeNull();
+    expect(video?.getAttribute('src')).toContain('/files/a1');
+  });
+
+  it('renders the audio player for an audio attachment', () => {
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    const { container } = render(
+      <MessageItem
+        message={buildMessage({
+          content: '',
+          attachments: [
+            { id: 'a2', fileName: 'audio.mp3', mimeType: 'audio/mpeg', sizeBytes: 2000 },
+          ],
+        })}
+        isOwn={false}
+        onReply={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(container.querySelector('[data-slot="audio-attachment"]')).not.toBeNull();
+    expect(screen.getByLabelText('Reproduzir')).toBeInTheDocument();
+    expect(screen.getByText('audio.mp3')).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
   it('renders reaction pills when reactions are provided', () => {
     render(
       <MessageItem

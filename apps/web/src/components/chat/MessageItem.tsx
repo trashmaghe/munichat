@@ -8,6 +8,8 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/componen
 import { UserAvatar } from '@/components/chat/UserAvatar';
 import { Reactions } from '@/components/chat/Reactions';
 import { PdfAttachmentCard } from '@/components/chat/PdfAttachmentCard';
+import { VideoAttachment } from '@/components/chat/VideoAttachment';
+import { AudioAttachment } from '@/components/chat/AudioAttachment';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -146,6 +148,19 @@ export function MessageItem({
                   key={attachment.id}
                   url={attachmentUrl(attachment.id)}
                   fileName={attachment.fileName}
+                />
+              ) : attachment.mimeType.startsWith('video/') ? (
+                <VideoAttachment
+                  key={attachment.id}
+                  url={attachmentUrl(attachment.id)}
+                  fileName={attachment.fileName}
+                />
+              ) : attachment.mimeType.startsWith('audio/') ? (
+                <AudioAttachment
+                  key={attachment.id}
+                  url={attachmentUrl(attachment.id)}
+                  fileName={attachment.fileName}
+                  sizeBytes={attachment.sizeBytes}
                 />
               ) : (
                 <a

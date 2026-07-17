@@ -1,6 +1,6 @@
-import { useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Paperclip, X } from 'lucide-react';
+import { Mic, Paperclip, X } from 'lucide-react';
 import {
   ALLOWED_UPLOAD_MIME_TYPES,
   MAX_UPLOAD_SIZE_BYTES,
@@ -10,7 +10,9 @@ import { sendMessage, editMessage } from '@/lib/socket';
 import { appendMessageToCache } from '@/lib/message-cache';
 import { presignUpload, uploadToPresignedUrl } from '@/lib/files-api';
 import { useTypingEmitter } from '@/hooks/useTypingEmitter';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { Button } from '@/components/ui/button';
+import { RecordingBar } from '@/components/chat/RecordingBar';
 
 export function MessageComposer({
   channelId,
@@ -32,6 +34,52 @@ export function MessageComposer({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { notifyTyping, stopTyping } = useTypingEmitter(channelId);
+  const recorder = useAudioRecorder();
+  const sentClipRef = useRef<File | null>(null);
+
+  async function sendAttachment(file: File, text: string) {
+    setIsSending(true);
+    setError(null);
+    try {
+      const presigned = await presignUpload(channelId, file);
+      await uploadToPresignedUrl(presigned.uploadUrl, file);
+      const message = await sendMessage(channelId, text, {
+        replyToId: replyTarget?.id,
+        attachments: [
+          {
+            objectKey: presigned.objectKey,
+            fileName: file.name,
+            mimeType: file.type,
+            sizeBytes: file.size,
+          },
+        ],
+      });
+      appendMessageToCache(queryClient, message);
+      if (replyTarget) {
+        onCancelReply();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao enviar o áudio.');
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  // Once a recording is finalized, upload + send it as a voice message through
+  // the same presign→send path as any attachment.
+  useEffect(() => {
+    if (
+      recorder.status === 'recorded' &&
+      recorder.file &&
+      sentClipRef.current !== recorder.file
+    ) {
+      sentClipRef.current = recorder.file;
+      const clip = recorder.file;
+      recorder.reset();
+      void sendAttachment(clip, '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorder.status, recorder.file]);
 
   async function handleSend() {
     const trimmed = content.trim();
@@ -113,7 +161,9 @@ export function MessageComposer({
 
   return (
     <div data-slot="message-composer" className="flex flex-col gap-2 border-t p-3">
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {(error ?? recorder.error) && (
+        <p className="text-xs text-destructive">{error ?? recorder.error}</p>
+      )}
 
       {editTarget && (
         <div className="flex items-center justify-between rounded-md bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
@@ -149,41 +199,60 @@ export function MessageComposer({
         </div>
       )}
 
-      <div className="flex items-end gap-2">
-        {!editTarget && (
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ALLOWED_UPLOAD_MIME_TYPES.join(',')}
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="Attach file"
-            >
-              <Paperclip />
-            </Button>
-          </>
-        )}
-        <textarea
-          value={content}
-          onChange={(e) => handleChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Message… (try /ticket <description> to open a GLPI ticket)"
-          rows={1}
-          className="flex-1 resize-none rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+      {recorder.status === 'recording' ? (
+        <RecordingBar
+          elapsedMs={recorder.elapsedMs}
+          getLevel={recorder.getLevel}
+          onCancel={recorder.cancel}
+          onSend={recorder.stop}
+          disabled={isSending}
         />
-        <Button
-          onClick={() => void handleSend()}
-          disabled={(!content.trim() && !pendingFile) || isSending}
-        >
-          Send
-        </Button>
-      </div>
+      ) : (
+        <div className="flex items-end gap-2">
+          {!editTarget && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ALLOWED_UPLOAD_MIME_TYPES.join(',')}
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach file"
+              >
+                <Paperclip />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => void recorder.start()}
+                disabled={recorder.status === 'requesting' || isSending}
+                aria-label="Record audio"
+              >
+                <Mic />
+              </Button>
+            </>
+          )}
+          <textarea
+            value={content}
+            onChange={(e) => handleChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Message… (try /ticket <description> to open a GLPI ticket)"
+            rows={1}
+            className="flex-1 resize-none rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+          <Button
+            onClick={() => void handleSend()}
+            disabled={(!content.trim() && !pendingFile) || isSending}
+          >
+            Send
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

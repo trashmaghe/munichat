@@ -1,13 +1,32 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SocketEvent } from '@munichat/shared';
 import { createMockSocket, getMockSocket, setMockSocket } from '@/test/socket-mock';
 
 vi.mock('socket.io-client', () => ({
   io: () => getMockSocket(),
 }));
+
+class FakeMediaRecorder {
+  static isTypeSupported = vi.fn(() => true);
+  state: 'inactive' | 'recording' = 'inactive';
+  ondataavailable: ((e: { data: Blob }) => void) | null = null;
+  onstop: (() => void) | null = null;
+  mimeType: string;
+  constructor(_stream: MediaStream, opts?: { mimeType?: string }) {
+    this.mimeType = opts?.mimeType ?? 'audio/webm';
+  }
+  start() {
+    this.state = 'recording';
+  }
+  stop() {
+    this.state = 'inactive';
+    this.ondataavailable?.({ data: new Blob(['x'], { type: 'audio/webm' }) });
+    this.onstop?.();
+  }
+}
 
 async function loadComposer() {
   vi.resetModules();
@@ -88,5 +107,34 @@ describe('MessageComposer', () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+
+  describe('audio recording', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('swaps the input row for the recording bar after tapping the mic', async () => {
+      Object.defineProperty(navigator, 'mediaDevices', {
+        value: {
+          getUserMedia: vi
+            .fn()
+            .mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] }),
+        },
+        configurable: true,
+      });
+      vi.stubGlobal('MediaRecorder', FakeMediaRecorder);
+
+      const MessageComposer = await loadComposer();
+      renderComposer(MessageComposer);
+      const user = userEvent.setup();
+
+      await user.click(screen.getByLabelText('Record audio'));
+
+      await waitFor(() =>
+        expect(screen.getByLabelText('Enviar áudio')).toBeInTheDocument(),
+      );
+      expect(screen.getByLabelText('Cancelar gravação')).toBeInTheDocument();
+    });
   });
 });
