@@ -97,7 +97,7 @@ export function PdfAttachmentCard({ url, fileName }: { url: string; fileName: st
           )}
         </div>
         <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm">
-          <FileText className="size-4 shrink-0 text-muted-foreground" />
+          <FileText className="size-4 shrink-0 text-primary" />
           <span className="truncate">{fileName}</span>
           {doc && (
             <span className={cn('ml-auto shrink-0 text-xs text-muted-foreground tabular-nums')}>

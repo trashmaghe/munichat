@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
-import { Download, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { Download, FileText, X, ZoomIn, ZoomOut } from 'lucide-react';
 import type { LoadedPdf } from '@/lib/pdf/pdf-client';
 import { pdfClient } from '@/lib/pdf/pdf-client';
 import type { PageSize } from '@/lib/pdf/pdf-protocol';
@@ -31,7 +31,10 @@ export function PdfViewerDialog({
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
         <Dialog.Popup className="fixed inset-0 z-50 flex flex-col bg-background outline-none">
           <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-2">
-            <Dialog.Title className="truncate text-sm font-medium">{fileName}</Dialog.Title>
+            <Dialog.Title className="flex min-w-0 items-center gap-2 text-sm font-medium">
+              <FileText className="size-4 shrink-0 text-primary" />
+              <span className="truncate">{fileName}</span>
+            </Dialog.Title>
             <div className="flex items-center gap-1 text-sm">
               <button
                 type="button"
@@ -72,9 +75,16 @@ export function PdfViewerDialog({
             </div>
           </header>
 
-          <div className="flex flex-1 flex-col items-center gap-4 overflow-auto bg-muted/40 p-4">
+          <div className="flex flex-1 flex-col items-center gap-4 overflow-auto bg-muted p-6">
             {loaded.pageSizes.map((size, i) => (
-              <PdfPageCanvas key={i} docId={loaded.docId} index={i} size={size} scale={scale} />
+              <PdfPageCanvas
+                key={i}
+                docId={loaded.docId}
+                index={i}
+                total={loaded.pageCount}
+                size={size}
+                scale={scale}
+              />
             ))}
           </div>
         </Dialog.Popup>
@@ -86,11 +96,13 @@ export function PdfViewerDialog({
 function PdfPageCanvas({
   docId,
   index,
+  total,
   size,
   scale,
 }: {
   docId: string;
   index: number;
+  total: number;
   size: PageSize;
   scale: number;
 }) {
@@ -145,9 +157,18 @@ function PdfPageCanvas({
     >
       <canvas
         ref={canvasRef}
-        className={cn('h-full w-full', !rendered && 'opacity-0')}
+        className={cn('h-full w-full', !rendered && 'invisible')}
         style={{ width: cssW, height: cssH }}
       />
+      {!rendered && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card text-xs text-muted-foreground">
+          <span className="size-[18px] animate-spin rounded-full border-2 border-border border-t-primary" />
+          <span>Renderizando página {index + 1}…</span>
+        </div>
+      )}
+      <span className="absolute bottom-2 left-2 rounded-full border border-border bg-card px-2 py-0.5 text-[11px] text-muted-foreground tabular-nums">
+        {index + 1} / {total}
+      </span>
     </div>
   );
 }
