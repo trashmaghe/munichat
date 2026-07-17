@@ -14,6 +14,15 @@ export class ChannelsService {
     return memberships.map((membership) => membership.channel);
   }
 
+  async listMembershipsForUser(
+    userId: string,
+  ): Promise<(ChannelMember & { channel: Channel })[]> {
+    return this.prisma.channelMember.findMany({
+      where: { userId },
+      include: { channel: true },
+    });
+  }
+
   async listMembers(
     channelId: string,
   ): Promise<(ChannelMember & { user: User })[]> {
@@ -39,5 +48,38 @@ export class ChannelsService {
       where: { userId_channelId: { userId, channelId } },
     });
     return membership?.role === MemberRole.ADMIN;
+  }
+
+  // One count query per channel: a user's channel count is bounded by their
+  // AD department memberships (small N), so this doesn't need a single
+  // grouped raw-SQL query.
+  async getUnreadCounts(
+    memberships: Pick<ChannelMember, 'channelId' | 'lastReadAt'>[],
+  ): Promise<Record<string, number>> {
+    const entries = await Promise.all(
+      memberships.map(async ({ channelId, lastReadAt }) => {
+        const count = await this.prisma.message.count({
+          where: {
+            channelId,
+            deletedAt: null,
+            ...(lastReadAt ? { createdAt: { gt: lastReadAt } } : {}),
+          },
+        });
+        return [channelId, count] as const;
+      }),
+    );
+    return Object.fromEntries(entries);
+  }
+
+  async markRead(
+    userId: string,
+    channelId: string,
+    messageId: string,
+    readAt: Date,
+  ): Promise<void> {
+    await this.prisma.channelMember.update({
+      where: { userId_channelId: { userId, channelId } },
+      data: { lastReadMessageId: messageId, lastReadAt: readAt },
+    });
   }
 }

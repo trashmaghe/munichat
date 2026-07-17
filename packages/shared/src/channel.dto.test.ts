@@ -9,8 +9,10 @@ describe('channelSummarySchema', () => {
       displayName: 'TI',
       type: 'DEPARTMENT',
       createdAt: '2026-07-10T00:00:00.000Z',
+      unreadCount: 3,
     });
     expect(result.name).toBe('ti');
+    expect(result.unreadCount).toBe(3);
   });
 
   it('rejects an invalid channel type', () => {
@@ -20,6 +22,19 @@ describe('channelSummarySchema', () => {
         name: 'ti',
         displayName: 'TI',
         type: 'NOT_A_TYPE',
+        createdAt: '2026-07-10T00:00:00.000Z',
+        unreadCount: 0,
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a missing unreadCount', () => {
+    expect(() =>
+      channelSummarySchema.parse({
+        id: 'c1',
+        name: 'ti',
+        displayName: 'TI',
+        type: 'DEPARTMENT',
         createdAt: '2026-07-10T00:00:00.000Z',
       }),
     ).toThrow();

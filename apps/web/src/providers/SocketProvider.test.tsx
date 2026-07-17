@@ -112,6 +112,79 @@ describe('SocketProvider', () => {
     expect(cached?.pages[0].messages).toEqual([updated]);
   });
 
+  it('bumps unreadCount in the channels cache for a message:new on an inactive channel', async () => {
+    const { SocketProvider, useChatStore } = await loadSocketProvider();
+    useChatStore.getState().setActiveChannelId('channel-1');
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(
+      ['channels'],
+      [
+        { id: 'channel-1', name: 'ti', displayName: 'TI', type: 'DEPARTMENT', createdAt: '2026-07-10T00:00:00.000Z', unreadCount: 0 },
+        { id: 'channel-2', name: 'financas', displayName: 'Financas', type: 'DEPARTMENT', createdAt: '2026-07-10T00:00:00.000Z', unreadCount: 0 },
+      ],
+    );
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SocketProvider>
+          <div>chat</div>
+        </SocketProvider>
+      </QueryClientProvider>,
+    );
+
+    const message = {
+      id: 'm1',
+      channelId: 'channel-2',
+      authorId: 'user-2',
+      content: 'hi',
+      type: 'TEXT',
+      replyToId: null,
+      editedAt: null,
+      deletedAt: null,
+      createdAt: '2026-07-10T00:00:00.000Z',
+      author: { id: 'user-2', username: 'mferreira', displayName: 'Maria Ferreira', avatarUrl: null },
+    };
+    getMockSocket().trigger(SocketEvent.MESSAGE_NEW, message);
+
+    const channels = queryClient.getQueryData<{ id: string; unreadCount: number }[]>(['channels']);
+    expect(channels?.find((c) => c.id === 'channel-2')?.unreadCount).toBe(1);
+    expect(channels?.find((c) => c.id === 'channel-1')?.unreadCount).toBe(0);
+  });
+
+  it('does not bump unreadCount for a message:new on the currently active channel', async () => {
+    const { SocketProvider, useChatStore } = await loadSocketProvider();
+    useChatStore.getState().setActiveChannelId('channel-1');
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(
+      ['channels'],
+      [{ id: 'channel-1', name: 'ti', displayName: 'TI', type: 'DEPARTMENT', createdAt: '2026-07-10T00:00:00.000Z', unreadCount: 0 }],
+    );
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SocketProvider>
+          <div>chat</div>
+        </SocketProvider>
+      </QueryClientProvider>,
+    );
+
+    getMockSocket().trigger(SocketEvent.MESSAGE_NEW, {
+      id: 'm1',
+      channelId: 'channel-1',
+      authorId: 'user-2',
+      content: 'hi',
+      type: 'TEXT',
+      replyToId: null,
+      editedAt: null,
+      deletedAt: null,
+      createdAt: '2026-07-10T00:00:00.000Z',
+      author: { id: 'user-2', username: 'mferreira', displayName: 'Maria Ferreira', avatarUrl: null },
+    });
+
+    const channels = queryClient.getQueryData<{ id: string; unreadCount: number }[]>(['channels']);
+    expect(channels?.find((c) => c.id === 'channel-1')?.unreadCount).toBe(0);
+  });
+
   it('clears the currentUser cache when the socket reports a connect_error', async () => {
     const { SocketProvider } = await loadSocketProvider();
     const queryClient = new QueryClient();

@@ -8,6 +8,7 @@ export const channelSummarySchema = z.object({
   displayName: z.string(),
   type: z.nativeEnum(ChannelType),
   createdAt: z.string(),
+  unreadCount: z.number(),
 });
 
 export type ChannelSummary = z.infer<typeof channelSummarySchema>;

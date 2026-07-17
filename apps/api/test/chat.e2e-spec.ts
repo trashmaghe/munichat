@@ -7,6 +7,8 @@ import { PrismaClient } from '@prisma/client';
 import { io, Socket } from 'socket.io-client';
 import type { AddressInfo } from 'node:net';
 import {
+  ChannelSummary,
+  channelSummarySchema,
   Message,
   messageHistoryResponseSchema,
   PresenceSyncPayload,
@@ -14,6 +16,7 @@ import {
   SocketEvent,
   TypingBroadcast,
 } from '@munichat/shared';
+import { z } from 'zod';
 import { AppModule } from './../src/app.module';
 import { RedisIoAdapter } from '../src/chat/redis-io.adapter';
 
@@ -243,6 +246,78 @@ describe('Chat (e2e)', () => {
     expect(updatePayload).toEqual({ userId: socketAId, online: false });
 
     socketB.disconnect();
+  });
+
+  it('tracks unread counts per channel and clears them on channel:read', async () => {
+    const [jsilvaCookie, adossantosCookie] = await Promise.all([
+      loginAndGetCookie('jsilva'),
+      loginAndGetCookie('adossantos'),
+    ]);
+
+    async function fetchChannel(cookie: string): Promise<ChannelSummary> {
+      const res = await request(app.getHttpServer())
+        .get('/channels')
+        .set('Cookie', cookie)
+        .expect(200);
+      const channels = z.array(channelSummarySchema).parse(res.body);
+      return channels.find((c) => c.id === channelId)!;
+    }
+
+    const socketA = connectSocket(baseUrl, jsilvaCookie);
+    const socketB = connectSocket(baseUrl, adossantosCookie);
+
+    try {
+      await Promise.all([waitForConnect(socketA), waitForConnect(socketB)]);
+
+      // Baseline: adossantos may already be caught up from earlier tests in
+      // this suite sharing the same seeded channel, so read the count before
+      // sending rather than assuming 0.
+      const before = await fetchChannel(adossantosCookie);
+
+      const messageNewPromise = waitForEvent<Message>(
+        socketB,
+        SocketEvent.MESSAGE_NEW,
+      );
+      const ack = await new Promise<{ message: Message } | { error: string }>(
+        (resolve) => {
+          socketA.emit(
+            SocketEvent.MESSAGE_SEND,
+            { channelId, content: 'unread-tracking probe' },
+            resolve,
+          );
+        },
+      );
+      expect(ack).toHaveProperty('message');
+      const sent = (ack as { message: Message }).message;
+      await messageNewPromise;
+
+      const afterSend = await fetchChannel(adossantosCookie);
+      expect(afterSend.unreadCount).toBe(before.unreadCount + 1);
+
+      // The sender's own unread count must not include the message they
+      // just sent themselves.
+      const senderChannel = await fetchChannel(jsilvaCookie);
+      expect(senderChannel.unreadCount).toBe(0);
+
+      const readAck = await new Promise<{ ok: true } | { error: string }>(
+        (resolve) => {
+          socketB.emit(
+            SocketEvent.CHANNEL_READ,
+            { channelId, messageId: sent.id },
+            resolve,
+          );
+        },
+      );
+      expect(readAck).toEqual({ ok: true });
+
+      const afterRead = await fetchChannel(adossantosCookie);
+      expect(afterRead.unreadCount).toBe(0);
+    } finally {
+      await Promise.all([
+        disconnectAndWait(socketA),
+        disconnectAndWait(socketB),
+      ]);
+    }
   });
 
   it('rejects a socket connection without a valid access token cookie', async () => {

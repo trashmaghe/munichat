@@ -2,13 +2,17 @@ import { Channel, ChannelMember, User } from '@prisma/client';
 import { ChannelMemberSummary, ChannelSummary } from '@munichat/shared';
 import { toUserSummary } from '../users/user-summary.mapper';
 
-export function toChannelSummary(channel: Channel): ChannelSummary {
+export function toChannelSummary(
+  channel: Channel,
+  unreadCount: number,
+): ChannelSummary {
   return {
     id: channel.id,
     name: channel.name,
     displayName: channel.displayName,
     type: channel.type,
     createdAt: channel.createdAt.toISOString(),
+    unreadCount,
   };
 }
 

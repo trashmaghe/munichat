@@ -22,8 +22,14 @@ export class ChannelsController {
 
   @Get()
   async list(@CurrentUser() user: User): Promise<ChannelSummary[]> {
-    const channels = await this.channelsService.listForUser(user.id);
-    return channels.map(toChannelSummary);
+    const memberships = await this.channelsService.listMembershipsForUser(
+      user.id,
+    );
+    const unreadCounts =
+      await this.channelsService.getUnreadCounts(memberships);
+    return memberships.map((membership) =>
+      toChannelSummary(membership.channel, unreadCounts[membership.channelId]),
+    );
   }
 
   @Get(':id/members')

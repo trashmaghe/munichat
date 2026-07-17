@@ -8,9 +8,13 @@ describe('ChannelsService', () => {
     channelMember: {
       findMany: jest.Mock;
       findUnique: jest.Mock;
+      update: jest.Mock;
     };
     channel: {
       findUnique: jest.Mock;
+    };
+    message: {
+      count: jest.Mock;
     };
   };
 
@@ -40,8 +44,13 @@ describe('ChannelsService', () => {
 
   beforeEach(async () => {
     prisma = {
-      channelMember: { findMany: jest.fn(), findUnique: jest.fn() },
+      channelMember: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
       channel: { findUnique: jest.fn() },
+      message: { count: jest.fn() },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -64,6 +73,88 @@ describe('ChannelsService', () => {
       expect(prisma.channelMember.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
         include: { channel: true },
+      });
+    });
+  });
+
+  describe('listMembershipsForUser', () => {
+    it('returns membership rows with the channel embedded', async () => {
+      const membership = {
+        userId: 'user-1',
+        channelId: 'channel-1',
+        role: 'MEMBER',
+        joinedAt: new Date('2026-07-10T00:00:00.000Z'),
+        lastReadMessageId: null,
+        lastReadAt: null,
+        channel,
+      };
+      prisma.channelMember.findMany.mockResolvedValue([membership]);
+
+      const result = await service.listMembershipsForUser('user-1');
+
+      expect(result).toEqual([membership]);
+      expect(prisma.channelMember.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        include: { channel: true },
+      });
+    });
+  });
+
+  describe('getUnreadCounts', () => {
+    it('counts all non-deleted messages when lastReadAt is null (never read)', async () => {
+      prisma.message.count.mockResolvedValue(5);
+
+      const result = await service.getUnreadCounts([
+        { channelId: 'channel-1', lastReadAt: null },
+      ]);
+
+      expect(result).toEqual({ 'channel-1': 5 });
+      expect(prisma.message.count).toHaveBeenCalledWith({
+        where: { channelId: 'channel-1', deletedAt: null },
+      });
+    });
+
+    it('counts messages newer than lastReadAt when it is set', async () => {
+      const lastReadAt = new Date('2026-07-10T00:00:00.000Z');
+      prisma.message.count.mockResolvedValue(2);
+
+      const result = await service.getUnreadCounts([
+        { channelId: 'channel-1', lastReadAt },
+      ]);
+
+      expect(result).toEqual({ 'channel-1': 2 });
+      expect(prisma.message.count).toHaveBeenCalledWith({
+        where: {
+          channelId: 'channel-1',
+          deletedAt: null,
+          createdAt: { gt: lastReadAt },
+        },
+      });
+    });
+
+    it('runs one count per membership and keys the result by channelId', async () => {
+      prisma.message.count.mockResolvedValueOnce(1).mockResolvedValueOnce(0);
+
+      const result = await service.getUnreadCounts([
+        { channelId: 'channel-1', lastReadAt: null },
+        { channelId: 'channel-2', lastReadAt: null },
+      ]);
+
+      expect(result).toEqual({ 'channel-1': 1, 'channel-2': 0 });
+    });
+  });
+
+  describe('markRead', () => {
+    it('sets lastReadMessageId and lastReadAt for the membership', async () => {
+      const readAt = new Date('2026-07-10T00:00:00.000Z');
+
+      await service.markRead('user-1', 'channel-1', 'm1', readAt);
+
+      expect(prisma.channelMember.update).toHaveBeenCalledWith({
+        where: {
+          userId_channelId: { userId: 'user-1', channelId: 'channel-1' },
+        },
+        data: { lastReadMessageId: 'm1', lastReadAt: readAt },
       });
     });
   });

@@ -50,3 +50,24 @@ export function editMessage(messageId: string, content: string): Promise<Message
 export function deleteMessage(messageId: string): Promise<Message> {
   return emitForMessage(SocketEvent.MESSAGE_DELETE, { messageId });
 }
+
+type ChannelReadAck = { ok: true } | { error: string };
+
+export function markChannelRead(
+  channelId: string,
+  messageId: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    getSocket().emit(
+      SocketEvent.CHANNEL_READ,
+      { channelId, messageId },
+      (ack: ChannelReadAck) => {
+        if ('error' in ack) {
+          reject(new Error(ack.error));
+        } else {
+          resolve();
+        }
+      },
+    );
+  });
+}
