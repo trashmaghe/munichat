@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Message } from '@munichat/shared';
 import { useChannelMessages } from '@/hooks/useChannelMessages';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { computeMessageGrouping } from '@/lib/message-grouping';
 import { MessageItem } from '@/components/chat/MessageItem';
 import { Button } from '@/components/ui/button';
+import { markChannelRead } from '@/lib/socket';
+import { markChannelReadInCache } from '@/lib/channel-cache';
 
 const NEAR_BOTTOM_THRESHOLD_PX = 100;
 
@@ -29,8 +32,10 @@ export function MessageList({
 }) {
   const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useChannelMessages(channelId);
   const { data: currentUser } = useCurrentUser();
+  const queryClient = useQueryClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const wasNearBottomRef = useRef(true);
+  const lastReadMessageIdRef = useRef<string | null>(null);
 
   const messages = data ? [...data.pages].reverse().flatMap((page) => page.messages) : [];
   const groupingFlags = computeMessageGrouping(messages);
@@ -41,6 +46,26 @@ export function MessageList({
       container.scrollTop = container.scrollHeight;
     }
   }, [messages.length]);
+
+  // Mark the channel read whenever the newest loaded message changes while
+  // the user is actually looking at the bottom of the list — not just
+  // because the channel is open (they may be scrolled up into history).
+  useEffect(() => {
+    const latest = messages[messages.length - 1];
+    if (
+      !latest ||
+      !wasNearBottomRef.current ||
+      latest.id === lastReadMessageIdRef.current
+    ) {
+      return;
+    }
+    lastReadMessageIdRef.current = latest.id;
+    markChannelReadInCache(queryClient, channelId);
+    void markChannelRead(channelId, latest.id);
+    // Reruns on messages.length (new message appended/loaded), not on every
+    // `messages` array identity change (a fresh array each render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId, messages.length, queryClient]);
 
   function handleScroll() {
     const container = containerRef.current;

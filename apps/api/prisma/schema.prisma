@@ -51,6 +51,7 @@ model ChannelMember {
   role              MemberRole @default(MEMBER)
   joinedAt          DateTime   @default(now())
   lastReadMessageId String?
+  lastReadAt        DateTime?
 
   user    User    @relation(fields: [userId], references: [id])
   channel Channel @relation(fields: [channelId], references: [id])

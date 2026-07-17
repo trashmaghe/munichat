@@ -17,9 +17,10 @@ no começo, coisas que exigem nova infra ou dependências pesadas.
 - **Reações com emoji** — reagir a mensagens (👍 ✅ etc.). Tabela `Reaction`
   (messageId, userId, emoji), evento socket `reaction:add/remove`, contadores na
   UI. Barato e muito requisitado.
-- **Recibos de leitura / não lidos** — já existe `ChannelMember.lastReadMessageId`
-  no schema, mas não é usado. Implementar contador de não lidas por canal e
-  marcador "lido até aqui". Grande ganho de usabilidade.
+- ~~**Recibos de leitura / não lidos**~~ — feito: badge de não lidas por canal
+  (`ChannelMember.lastReadAt`/`lastReadMessageId`, evento socket
+  `channel:read`). Escopo é por canal (estilo Slack/Discord), não "visto por"
+  por mensagem — ver `apps/api/src/chat/chat.gateway.ts`.
 - **Mensagens diretas (DMs)** — o `ChannelType.DM` já existe no enum. Falta a UI
   para iniciar conversa 1:1 e a criação do canal DM sob demanda (fora do sync do
   AD).
@@ -37,10 +38,10 @@ no começo, coisas que exigem nova infra ou dependências pesadas.
 - **Painel de administração** — o modelo `MemberRole.ADMIN` já existe. Criar um
   painel para: ver canais, gerenciar membros manualmente, desativar usuários
   (`isActive`/`tokenVersion` para logout forçado), ver estatísticas.
-- **Auditoria de verdade** — o modelo `AuditLog` existe mas está **vazio** (só há
-  um README stub). Registrar login, criação de ticket, mensagens apagadas por
-  admin, mudanças de permissão. Importante para o setor público (transparência /
-  LGPD).
+- **Auditoria de verdade** — `AuditLog` já é gravado para o controle remoto RMM
+  (`apps/api/src/audit/`), mas só ali. Faltam login, criação de ticket,
+  mensagens apagadas por admin, mudanças de permissão. Importante para o setor
+  público (transparência / LGPD).
 - **Retenção e exportação** — política de retenção de mensagens por canal e
   exportação (para atender pedidos de acesso à informação / LGPD).
 - **Moderação** — admin poder apagar mensagem de terceiros com registro no
@@ -113,8 +114,8 @@ no começo, coisas que exigem nova infra ou dependências pesadas.
 
 Se fosse escolher só três para depois da Fase 6, na ordem:
 
-1. **Recibos de leitura + não lidos** — o schema já suporta; impacto enorme na
-   sensação de "app de chat de verdade".
-2. **Auditoria real (`AuditLog`)** — obrigatório para o contexto de setor público
-   e você já tem o modelo pronto.
+1. ~~**Recibos de leitura + não lidos**~~ — feito (badge de não lidas por canal).
+2. ~~**Auditoria real (`AuditLog`)**~~ — feito para o fluxo de controle remoto
+   RMM (`apps/api/src/audit/`); ainda vale estender para login, criação de
+   ticket e moderação, como descrito na seção 2 acima.
 3. **Reações com emoji** — vitória rápida, muito visível, engaja os usuários.

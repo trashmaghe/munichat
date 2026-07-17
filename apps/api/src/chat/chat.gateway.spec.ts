@@ -28,7 +28,11 @@ function asGatewaySocket(socket: FakeSocket): GatewaySocket {
 
 describe('ChatGateway', () => {
   let gateway: ChatGateway;
-  let channelsService: { listForUser: jest.Mock; isMember: jest.Mock };
+  let channelsService: {
+    listForUser: jest.Mock;
+    isMember: jest.Mock;
+    markRead: jest.Mock;
+  };
   let messagesService: {
     create: jest.Mock;
     getById: jest.Mock;
@@ -72,7 +76,11 @@ describe('ChatGateway', () => {
   }
 
   beforeEach(async () => {
-    channelsService = { listForUser: jest.fn(), isMember: jest.fn() };
+    channelsService = {
+      listForUser: jest.fn(),
+      isMember: jest.fn(),
+      markRead: jest.fn(),
+    };
     messagesService = {
       create: jest.fn(),
       getById: jest.fn(),
@@ -222,6 +230,25 @@ describe('ChatGateway', () => {
       expect(ack).toHaveProperty('message.id', 'm1');
     });
 
+    it("marks the sender's own channel read at the message it just sent", async () => {
+      channelsService.isMember.mockResolvedValue(true);
+      const created = buildMessage();
+      messagesService.create.mockResolvedValue({ message: created });
+      const socket = fakeSocket(user);
+
+      await gateway.handleMessageSend(asGatewaySocket(socket), {
+        channelId: 'channel-1',
+        content: 'hi',
+      });
+
+      expect(channelsService.markRead).toHaveBeenCalledWith(
+        'user-1',
+        'channel-1',
+        'm1',
+        created.createdAt,
+      );
+    });
+
     it('relays the error from MessagesService.create (e.g. attachment size mismatch) as the ack', async () => {
       channelsService.isMember.mockResolvedValue(true);
       messagesService.create.mockResolvedValue({
@@ -359,6 +386,70 @@ describe('ChatGateway', () => {
         expect.objectContaining({ id: 'm1', deletedAt: expect.any(String) }),
       );
       expect(ack).toHaveProperty('message.id', 'm1');
+    });
+  });
+
+  describe('handleChannelRead', () => {
+    it('returns an error ack for an invalid payload', async () => {
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleChannelRead(asGatewaySocket(socket), {
+        channelId: 'channel-1',
+      });
+
+      expect(ack).toEqual({ error: 'Invalid channel-read payload' });
+      expect(channelsService.markRead).not.toHaveBeenCalled();
+    });
+
+    it('returns an error ack when the sender is not a member of the channel', async () => {
+      channelsService.isMember.mockResolvedValue(false);
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleChannelRead(asGatewaySocket(socket), {
+        channelId: 'channel-1',
+        messageId: 'm1',
+      });
+
+      expect(ack).toEqual({ error: 'You are not a member of this channel' });
+      expect(channelsService.markRead).not.toHaveBeenCalled();
+    });
+
+    it('returns an error ack when the message does not belong to the channel', async () => {
+      channelsService.isMember.mockResolvedValue(true);
+      messagesService.getById.mockResolvedValue(
+        buildMessage({ channelId: 'channel-2' }),
+      );
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleChannelRead(asGatewaySocket(socket), {
+        channelId: 'channel-1',
+        messageId: 'm1',
+      });
+
+      expect(ack).toEqual({ error: 'Message not found in this channel' });
+      expect(channelsService.markRead).not.toHaveBeenCalled();
+    });
+
+    it('marks the channel read and acks, without broadcasting to the room', async () => {
+      channelsService.isMember.mockResolvedValue(true);
+      const message = buildMessage();
+      messagesService.getById.mockResolvedValue(message);
+      const socket = fakeSocket(user);
+
+      const ack = await gateway.handleChannelRead(asGatewaySocket(socket), {
+        channelId: 'channel-1',
+        messageId: 'm1',
+      });
+
+      expect(channelsService.markRead).toHaveBeenCalledWith(
+        'user-1',
+        'channel-1',
+        'm1',
+        message.createdAt,
+      );
+      expect(ack).toEqual({ ok: true });
+      expect(socket.to).not.toHaveBeenCalled();
+      expect(server.to).not.toHaveBeenCalled();
     });
   });
 

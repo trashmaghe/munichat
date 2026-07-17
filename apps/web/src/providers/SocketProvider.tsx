@@ -9,6 +9,7 @@ import {
 } from '@munichat/shared';
 import { getSocket } from '@/lib/socket';
 import { appendMessageToCache, updateMessageInCache } from '@/lib/message-cache';
+import { incrementUnreadCountInCache } from '@/lib/channel-cache';
 import { shouldNotify, showMessageNotification } from '@/lib/notifications';
 import { useChatStore } from '@/stores/useChatStore';
 import { useUIStore } from '@/stores/useUIStore';
@@ -32,12 +33,20 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     function handleMessageNew(message: Message) {
       appendMessageToCache(queryClient, message);
 
+      const activeChannelId = useChatStore.getState().activeChannelId;
+      // A message that isn't for the channel currently open bumps its
+      // unread badge; MessageList.tsx handles marking the active channel
+      // itself read as it renders new messages near the bottom.
+      if (message.channelId !== activeChannelId) {
+        incrementUnreadCountInCache(queryClient, message.channelId);
+      }
+
       if (
         typeof Notification !== 'undefined' &&
         shouldNotify({
           message,
           currentUserId: currentUserIdRef.current,
-          activeChannelId: useChatStore.getState().activeChannelId,
+          activeChannelId,
           documentVisibilityState: document.visibilityState,
           permission: Notification.permission,
           notificationsEnabled: useUIStore.getState().notificationsEnabled,

@@ -12,11 +12,19 @@ export function ChannelListItem({ channel }: { channel: ChannelSummary }) {
       data-slot="channel-list-item"
       data-active={isActive}
       className={cn(
-        'flex items-center rounded-lg px-2 py-1.5 text-sm hover:bg-muted',
+        'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted',
         isActive && 'bg-muted font-medium',
       )}
     >
       <span className="truncate">{channel.displayName}</span>
+      {channel.unreadCount > 0 && (
+        <span
+          data-slot="unread-badge"
+          className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground"
+        >
+          {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
+        </span>
+      )}
     </Link>
   );
 }

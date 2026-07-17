@@ -10,6 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { User } from '@prisma/client';
 import {
+  channelReadRequestSchema,
   deleteMessageRequestSchema,
   editMessageRequestSchema,
   Message,
@@ -135,6 +136,16 @@ export class ChatGateway
 
     const dto = toMessageDto(result.message, this.glpiUrl);
 
+    // Sending a message implies the author has seen the channel up to this
+    // point — without this, a user's own outgoing message would show up as
+    // "1 unread" for themselves on their next channel-list fetch.
+    await this.channelsService.markRead(
+      user.id,
+      request.channelId,
+      result.message.id,
+      result.message.createdAt,
+    );
+
     socket
       .to(channelRoom(request.channelId))
       .emit(SocketEvent.MESSAGE_NEW, dto);
@@ -206,6 +217,38 @@ export class ChatGateway
       .emit(SocketEvent.MESSAGE_UPDATED, dto);
 
     return { message: dto };
+  }
+
+  @SubscribeMessage(SocketEvent.CHANNEL_READ)
+  async handleChannelRead(
+    @ConnectedSocket() socket: AuthenticatedSocket,
+    @MessageBody() body: unknown,
+  ): Promise<{ ok: true } | { error: string }> {
+    const user = socket.data.user;
+    const parsed = channelReadRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return { error: 'Invalid channel-read payload' };
+    }
+    const { channelId, messageId } = parsed.data;
+
+    const isMember = await this.channelsService.isMember(user.id, channelId);
+    if (!isMember) {
+      return { error: 'You are not a member of this channel' };
+    }
+
+    const message = await this.messagesService.getById(messageId);
+    if (!message || message.channelId !== channelId) {
+      return { error: 'Message not found in this channel' };
+    }
+
+    await this.channelsService.markRead(
+      user.id,
+      channelId,
+      messageId,
+      message.createdAt,
+    );
+
+    return { ok: true };
   }
 
   @SubscribeMessage(SocketEvent.TYPING_START)

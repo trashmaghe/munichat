@@ -28,8 +28,8 @@ describe('ChannelSidebar', () => {
         if (url.includes('/channels')) {
           return Promise.resolve(
             jsonResponse([
-              { id: 'channel-1', name: 'ti', displayName: 'TI', type: 'DEPARTMENT', createdAt: '2026-07-10T00:00:00.000Z' },
-              { id: 'channel-2', name: 'financas', displayName: 'Financas', type: 'DEPARTMENT', createdAt: '2026-07-10T00:00:00.000Z' },
+              { id: 'channel-1', name: 'ti', displayName: 'TI', type: 'DEPARTMENT', createdAt: '2026-07-10T00:00:00.000Z', unreadCount: 0 },
+              { id: 'channel-2', name: 'financas', displayName: 'Financas', type: 'DEPARTMENT', createdAt: '2026-07-10T00:00:00.000Z', unreadCount: 3 },
             ]),
           );
         }
@@ -69,5 +69,18 @@ describe('ChannelSidebar', () => {
     await waitFor(() => {
       expect(screen.getByText('Joao Silva')).toBeInTheDocument();
     });
+  });
+
+  it('shows an unread badge only for channels with unreadCount > 0', async () => {
+    renderAt('/channels/channel-1');
+
+    await waitFor(() => {
+      expect(screen.getByText('Financas')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(
+      screen.getByText('TI').closest('a')?.querySelector('[data-slot="unread-badge"]'),
+    ).not.toBeInTheDocument();
   });
 });

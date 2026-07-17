@@ -159,6 +159,19 @@ O coração da segurança. Login é feito contra o Active Directory via LDAP.
 Regra de negócio importante: **membros de canal só mudam no login** (via sync do
 AD), nunca no meio da sessão. Isso simplifica a lógica de *rooms* do WebSocket.
 
+**Não lidas por canal:** `GET /channels` também retorna `unreadCount` por
+canal (`ChannelsService.getUnreadCounts`, uma query `count` por canal do
+usuário — `lastReadAt` nulo conta todas as mensagens não deletadas; caso
+contrário conta `createdAt > lastReadAt`). Marcar como lido é feito via socket
+(`channel:read` em `chat.gateway.ts`, não REST — segue o mesmo padrão de
+`message:edit`/`message:delete`), e nunca é retransmitido para o resto do
+canal: é estado privado do próprio usuário, não um "visto por" público.
+Enviar uma mensagem também marca o próprio remetente como tendo lido até ali
+(senão a mensagem que a pessoa acabou de mandar apareceria como não lida para
+ela mesma). Limitação conhecida: sem *room* por usuário no gateway, marcar
+como lido numa aba não propaga em tempo real para outras abas/dispositivos do
+mesmo usuário — elas só sincronizam no próximo `GET /channels`.
+
 ### `messages/` — Mensagens
 
 - `messages.service.ts` — cria mensagens (inclusive detectando o comando

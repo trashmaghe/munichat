@@ -6,6 +6,7 @@ export const SocketEvent = {
   MESSAGE_EDIT: 'message:edit',
   MESSAGE_DELETE: 'message:delete',
   MESSAGE_UPDATED: 'message:updated',
+  CHANNEL_READ: 'channel:read',
   TYPING_START: 'typing:start',
   TYPING_STOP: 'typing:stop',
   PRESENCE_SYNC: 'presence:sync',
@@ -25,6 +26,13 @@ export const deleteMessageRequestSchema = z.object({
 });
 
 export type DeleteMessageRequest = z.infer<typeof deleteMessageRequestSchema>;
+
+export const channelReadRequestSchema = z.object({
+  channelId: z.string(),
+  messageId: z.string(),
+});
+
+export type ChannelReadRequest = z.infer<typeof channelReadRequestSchema>;
 
 export const typingClientPayloadSchema = z.object({
   channelId: z.string(),

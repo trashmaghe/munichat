@@ -7,7 +7,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 describe('ChannelsController', () => {
   let controller: ChannelsController;
   let channelsService: {
-    listForUser: jest.Mock;
+    listMembershipsForUser: jest.Mock;
+    getUnreadCounts: jest.Mock;
     listMembers: jest.Mock;
     isMember: jest.Mock;
   };
@@ -38,7 +39,8 @@ describe('ChannelsController', () => {
 
   beforeEach(async () => {
     channelsService = {
-      listForUser: jest.fn(),
+      listMembershipsForUser: jest.fn(),
+      getUnreadCounts: jest.fn(),
       listMembers: jest.fn(),
       isMember: jest.fn(),
     };
@@ -55,8 +57,19 @@ describe('ChannelsController', () => {
   });
 
   describe('list', () => {
-    it('maps channels for the current user to summaries', async () => {
-      channelsService.listForUser.mockResolvedValue([channel]);
+    it('maps channels for the current user to summaries with unread counts', async () => {
+      channelsService.listMembershipsForUser.mockResolvedValue([
+        {
+          userId: 'user-1',
+          channelId: 'channel-1',
+          role: 'MEMBER',
+          joinedAt: new Date('2026-07-10T00:00:00.000Z'),
+          lastReadMessageId: null,
+          lastReadAt: null,
+          channel,
+        },
+      ]);
+      channelsService.getUnreadCounts.mockResolvedValue({ 'channel-1': 3 });
 
       const result = await controller.list(user);
 
@@ -67,6 +80,7 @@ describe('ChannelsController', () => {
           displayName: 'TI',
           type: 'DEPARTMENT',
           createdAt: '2026-07-10T00:00:00.000Z',
+          unreadCount: 3,
         },
       ]);
     });
