@@ -78,6 +78,24 @@ export class FilesService {
     return response.Body as Readable;
   }
 
+  // Streams a byte range of an object (for HTTP Range requests, e.g. video
+  // seeking). `start`/`end` are inclusive byte offsets. MinIO/S3 GetObject
+  // honours the Range header and returns just that window.
+  async streamObjectRange(
+    objectKey: string,
+    start: number,
+    end: number,
+  ): Promise<Readable> {
+    const response = await this.s3.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: objectKey,
+        Range: `bytes=${start}-${end}`,
+      }),
+    );
+    return response.Body as Readable;
+  }
+
   async getRealObjectSize(objectKey: string): Promise<number | null> {
     try {
       const response = await this.s3.send(

@@ -35,6 +35,19 @@ describe('presignUploadRequestSchema', () => {
     expect(result.mimeType).toBe('image/png');
   });
 
+  it('accepts audio and video types (inline media + voice messages)', () => {
+    for (const mimeType of ['video/mp4', 'audio/mpeg', 'audio/webm', 'audio/mp4']) {
+      expect(
+        presignUploadRequestSchema.parse({
+          channelId: 'c1',
+          fileName: `clip.${mimeType.split('/')[1]}`,
+          mimeType,
+          sizeBytes: 4096,
+        }).mimeType,
+      ).toBe(mimeType);
+    }
+  });
+
   it('rejects a disallowed mime type', () => {
     expect(() =>
       presignUploadRequestSchema.parse({

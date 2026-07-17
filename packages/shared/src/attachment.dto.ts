@@ -17,6 +17,17 @@ export const ALLOWED_UPLOAD_MIME_TYPES = [
   'text/plain',
   'text/csv',
   'application/zip',
+  // Audio & video — played inline via the browser's native decoders. The
+  // audio/webm + audio/mp4 entries also cover MediaRecorder output (voice
+  // messages recorded in the composer: Opus/WebM on Chrome/Firefox, AAC/MP4
+  // on Safari).
+  'video/mp4',
+  'video/webm',
+  'audio/mpeg',
+  'audio/mp4',
+  'audio/ogg',
+  'audio/webm',
+  'audio/wav',
 ] as const;
 
 export const attachmentSchema = z.object({
