@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserAvatar } from '@/components/chat/UserAvatar';
 import { Reactions } from '@/components/chat/Reactions';
+import { PdfAttachmentCard } from '@/components/chat/PdfAttachmentCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,6 +141,12 @@ export function MessageItem({
                     className="max-h-64 max-w-64 rounded-lg border border-border object-cover"
                   />
                 </a>
+              ) : attachment.mimeType === 'application/pdf' ? (
+                <PdfAttachmentCard
+                  key={attachment.id}
+                  url={attachmentUrl(attachment.id)}
+                  fileName={attachment.fileName}
+                />
               ) : (
                 <a
                   key={attachment.id}

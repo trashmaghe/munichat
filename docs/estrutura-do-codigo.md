@@ -364,6 +364,44 @@ apps/web/src/
   testar sem mockar `Notification`/`document` globais) que decide se uma
   notificação deve disparar, e `showMessageNotification()`, que efetivamente
   cria a notificação do navegador.
+- `pdf/` — **renderizador de PDF próprio, em TypeScript puro** (sem pdf.js nem
+  biblioteca externa). Ver seção abaixo.
+
+### Renderizador de PDF (`lib/pdf/`)
+
+Prévia inline de anexos PDF direto no chat, sem depender de pdf.js. Escrito do
+zero, camada por camada, cada uma testável isoladamente:
+
+- `lexer.ts` / `parser.ts` — tokeniza os bytes do PDF e monta o modelo de
+  objetos (`types.ts`): dicionários, arrays, referências indiretas, streams.
+- `filters.ts` — decodifica streams: `FlateDecode` (via `DecompressionStream`
+  nativo, sem inflate à mão) + preditores PNG/TIFF, ASCII85/Hex, LZW,
+  RunLength; filtros de imagem (DCT/JPX/CCITT) são repassados para a camada de
+  imagem.
+- `document.ts` — resolve a *cross-reference* nas três formas modernas (tabela
+  `xref` clássica, *xref streams* e *object streams*), segue `/Prev`, monta a
+  árvore de páginas, e cai num modo de recuperação (varre o arquivo por
+  `N G obj`) se a estrutura estiver corrompida.
+- `fonts.ts` / `encodings.ts` — larguras de avanço e decodificação
+  bytes→Unicode (WinAnsi, `/Differences`, CMaps `/ToUnicode`, CID/Type0). **Não**
+  rasteriza os glyphs embutidos — o texto é desenhado numa fonte de fallback
+  (a limitação assumida do MVP).
+- `content-interpreter.ts` — executa os operadores do content stream contra uma
+  interface `CanvasLike` (injetável, então é testável com um mock que grava as
+  chamadas): estado gráfico, caminhos, preenchimento/traço, recorte, cor
+  (cinza/RGB/CMYK), texto e XObjects (forms + imagens).
+- `images.ts` — imagens raster (Flate) via `putImageData` e JPEG (`DCTDecode`)
+  via `createImageBitmap`. Escaneados (CCITT/JBIG2/CMYK-JPEG) ficam de fora.
+- `render.ts` + `pdf.worker.ts` + `pdf-client.ts` — a rasterização roda **num
+  Web Worker** (num `OffscreenCanvas`, devolvendo `ImageBitmap` por transfer,
+  zero-copy) pra não travar a UI do chat; `pdf-client.ts` é a API na main
+  thread que correlaciona requisições por id.
+
+Na UI, `MessageItem.tsx` renderiza anexos `application/pdf` como
+`PdfAttachmentCard` (miniatura da página 1, carregada só quando entra na tela)
+que abre o `PdfViewerDialog` (visualizador em tela cheia com zoom e páginas
+renderizadas sob demanda via `IntersectionObserver`). PDFs criptografados ou
+que falham no parse caem no link de download simples de antes.
 
 Detalhe de arquitetura: o `SocketProvider` é montado **dentro** do layout
 autenticado, então a rota `/login` nunca abre um socket. Um `connect_error` do

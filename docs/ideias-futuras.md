@@ -79,6 +79,13 @@ no começo, coisas que exigem nova infra ou dependências pesadas.
 
 - **Formatação Markdown** nas mensagens (negrito, listas, código) com sanitização.
 - **Preview de imagens/inline** para anexos de imagem direto no chat.
+- ~~**Prévia de PDF no chat**~~ — feito: renderizador de PDF próprio em
+  TypeScript puro (sem pdf.js), em `apps/web/src/lib/pdf/`, roda num Web Worker
+  e mostra os anexos `application/pdf` como um card com miniatura + visualizador
+  em tela cheia. É um MVP: renderiza texto (em fonte de fallback, não nos
+  glyphs embutidos), vetores e imagens raster/JPEG; documentos escaneados
+  (CCITT/JBIG2) e criptografados caem no download. Ver a seção do módulo em
+  `docs/estrutura-do-codigo.md`.
 - **Busca avançada** (evolução da busca da Fase 6): filtros por autor, data,
   canal, "só com anexo".
 - **Comandos slash adicionais** — além de `/ticket`: `/giphy`, `/poll` (enquete),
