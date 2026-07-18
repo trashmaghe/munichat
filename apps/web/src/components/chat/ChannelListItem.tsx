@@ -12,10 +12,16 @@ export function ChannelListItem({ channel }: { channel: ChannelSummary }) {
       data-slot="channel-list-item"
       data-active={isActive}
       className={cn(
-        'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted',
-        isActive && 'bg-muted font-medium',
+        'relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted',
+        isActive && 'bg-accent font-medium text-accent-foreground',
       )}
     >
+      {isActive && (
+        <span
+          aria-hidden
+          className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-gold"
+        />
+      )}
       <span className="truncate">{channel.displayName}</span>
       {channel.unreadCount > 0 && (
         <span

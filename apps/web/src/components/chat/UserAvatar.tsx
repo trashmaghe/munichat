@@ -19,7 +19,7 @@ export function UserAvatar({
     <span
       data-slot="user-avatar"
       className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-[11px] font-medium text-sidebar-primary-foreground',
+        'flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-[11px] font-medium text-sidebar-primary-foreground ring-1 ring-foreground/5',
         className,
       )}
     >

@@ -19,8 +19,16 @@ export function TypingIndicator({ channelId }: { channelId: string }) {
   const label = names.length === 1 ? `${names[0]} is typing…` : `${names.join(', ')} are typing…`;
 
   return (
-    <p data-slot="typing-indicator" className="px-4 py-1 text-xs text-muted-foreground">
+    <div
+      data-slot="typing-indicator"
+      className="flex items-center gap-2 px-4 py-1 text-xs text-muted-foreground"
+    >
+      <span className="flex items-center gap-0.5" aria-hidden>
+        <span className="size-1 animate-bounce rounded-full bg-gold [animation-delay:-0.3s] motion-reduce:animate-none" />
+        <span className="size-1 animate-bounce rounded-full bg-gold [animation-delay:-0.15s] motion-reduce:animate-none" />
+        <span className="size-1 animate-bounce rounded-full bg-gold motion-reduce:animate-none" />
+      </span>
       {label}
-    </p>
+    </div>
   );
 }

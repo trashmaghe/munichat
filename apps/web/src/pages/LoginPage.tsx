@@ -3,8 +3,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { loginRequestSchema } from '@elyzian/shared';
 import { login } from '@/lib/auth-api';
+import { AsphodelMark } from '@/components/brand/AsphodelMark';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -32,21 +33,34 @@ export function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
+      {/* Aperture — concentric rings echoing the brand's threshold reading. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1/2 left-1/2 size-[30rem] -translate-x-1/2 -translate-y-[55%] rounded-full bg-[radial-gradient(circle,var(--accent)_0%,transparent_68%)] opacity-[0.16] blur-[6px]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-14 -right-20 h-[25rem] w-[22rem] rotate-[-6deg] bg-[linear-gradient(155deg,var(--gold),var(--accent))] opacity-10 [clip-path:polygon(50%_0%,100%_18%,100%_58%,50%_100%,0%_58%,0%_18%)]"
-      />
-      <Card className="relative z-10 w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Sign in to Elyzian</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        className="pointer-events-none absolute top-1/2 left-1/2 size-[42rem] -translate-x-1/2 -translate-y-1/2"
+      >
+        <div className="absolute inset-0 rounded-full border border-border/70" />
+        <div className="absolute inset-[12%] rounded-full border border-border/50" />
+        <div className="absolute inset-[26%] rounded-full border border-border/30" />
+        <div className="absolute inset-[40%] rounded-full bg-[radial-gradient(circle,var(--gold)_0%,transparent_70%)] opacity-[0.07]" />
+      </div>
+
+      <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
+        <div className="flex flex-col items-center gap-3 pb-7 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-[#191d23] text-gold shadow-sm">
+            <AsphodelMark className="size-8" title="Elyzian" />
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Elyzian</h1>
+            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+              Prefeitura Municipal de Nova Serrana
+            </p>
+          </div>
+        </div>
+
+        <Card className="w-full">
+          <CardContent>
+            <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -76,9 +90,10 @@ export function LoginPage() {
             <Button type="submit" className="w-full" disabled={mutation.isPending}>
               {mutation.isPending ? 'Signing in…' : 'Sign in'}
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
