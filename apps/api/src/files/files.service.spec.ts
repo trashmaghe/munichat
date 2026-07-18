@@ -35,9 +35,9 @@ describe('FilesService', () => {
       MINIO_ENDPOINT: 'localhost',
       MINIO_PORT: '9000',
       MINIO_USE_SSL: 'false',
-      MINIO_ROOT_USER: 'munichat_admin',
-      MINIO_ROOT_PASSWORD: 'munichat_dev_password',
-      MINIO_BUCKET: 'munichat-files',
+      MINIO_ROOT_USER: 'elyzian_admin',
+      MINIO_ROOT_PASSWORD: 'elyzian_dev_password',
+      MINIO_BUCKET: 'elyzian-files',
     };
 
     const module: TestingModule = await Test.createTestingModule({

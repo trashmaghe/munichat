@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RmmAgentSummary, RmmRemoteControlUrls } from '@munichat/shared';
+import { RmmAgentSummary, RmmRemoteControlUrls } from '@elyzian/shared';
 
 const REQUEST_TIMEOUT_MS = 10000;
 
@@ -88,7 +88,7 @@ export class RmmService {
   }
 
   // Mediates a MeshCentral "Take Control" session through Tactical RMM's own
-  // API — MuniChat never talks to MeshCentral directly or holds credentials
+  // API — Elyzian never talks to MeshCentral directly or holds credentials
   // for it. The returned URLs each embed a one-time MeshCentral login token:
   // treat them as live bearer credentials (see RmmController.getRemoteControl).
   async getMeshControlUrls(agentId: string): Promise<RmmRemoteControlUrls> {

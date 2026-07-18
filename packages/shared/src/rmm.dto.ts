@@ -17,7 +17,7 @@ export type RmmAlertSeverity = z.infer<typeof rmmAlertSeveritySchema>;
 
 // Tactical RMM's own webhook body is a JSON template authored in the Alert
 // Template UI (it substitutes {{ }} variables into whatever shape you write),
-// so this schema is the contract MuniChat expects that template to produce —
+// so this schema is the contract Elyzian expects that template to produce —
 // not something Tactical RMM defines for us.
 export const rmmAlertWebhookSchema = z.object({
   alertId: z.string().min(1),

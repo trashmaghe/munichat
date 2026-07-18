@@ -21,7 +21,7 @@ import {
   SocketEvent,
   TypingBroadcast,
   typingClientPayloadSchema,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { Server, Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
 import { ChannelsService } from '../channels/channels.service';

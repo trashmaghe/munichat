@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { RmmAgentSummary } from '@munichat/shared';
+import type { RmmAgentSummary } from '@elyzian/shared';
 
 export function RmmAgentsPanel({ canRemoteControl }: { canRemoteControl: boolean }) {
   const [open, setOpen] = useState(false);

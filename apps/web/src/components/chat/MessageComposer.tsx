@@ -5,7 +5,7 @@ import {
   ALLOWED_UPLOAD_MIME_TYPES,
   MAX_UPLOAD_SIZE_BYTES,
   type Message,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { sendMessage, editMessage } from '@/lib/socket';
 import { appendMessageToCache } from '@/lib/message-cache';
 import { presignUpload, uploadToPresignedUrl } from '@/lib/files-api';

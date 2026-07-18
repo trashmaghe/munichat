@@ -10,11 +10,11 @@ import {
   Message,
   messageSearchResponseSchema,
   SocketEvent,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { AppModule } from './../src/app.module';
 import { RedisIoAdapter } from '../src/chat/redis-io.adapter';
 
-const FINANCAS_GROUP_DN = 'cn=financas,ou=groups,dc=munichat,dc=local';
+const FINANCAS_GROUP_DN = 'cn=financas,ou=groups,dc=elyzian,dc=local';
 
 function extractCookie(
   setCookieHeader: string | string[] | undefined,
@@ -115,7 +115,7 @@ describe('Message search (e2e)', () => {
     await loginAndGetCookie('mferreira');
 
     const tiChannel = await prisma.channel.findUnique({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=munichat,dc=local' },
+      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
     });
     tiChannelId = tiChannel!.id;
 

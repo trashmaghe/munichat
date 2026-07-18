@@ -28,7 +28,7 @@
 
 ## Prompt (cole isto no agente)
 
-> Implemente as quatro funcionalidades restantes da Fase 6 do MuniChat, cada uma
+> Implemente as quatro funcionalidades restantes da Fase 6 do Elyzian, cada uma
 > em seu próprio commit, com testes, seguindo os padrões existentes do repositório
 > (leia `docs/estrutura-do-codigo.md` antes de começar). Não quebre o lint, o
 > typecheck nem os testes existentes. Detalhes por funcionalidade abaixo.
@@ -80,7 +80,7 @@
 **Objetivo:** instalável, com ícone, e cache básico de shell offline.
 
 - Use `vite-plugin-pwa` no `apps/web`. Gere `manifest.webmanifest` com nome
-  "MuniChat", ícones (reuse/derive do brasão em `docs/assets/brasao-pmns.png`),
+  "Elyzian", ícones (reuse/derive do brasão em `docs/assets/brasao-pmns.png`),
   `theme_color`, `display: standalone`.
 - Service worker com estratégia sensata: cache do *app shell* (assets do build),
   **network-first** para chamadas de API (nunca sirva mensagens velhas do cache

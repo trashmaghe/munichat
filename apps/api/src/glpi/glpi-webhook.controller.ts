@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
-import { SocketEvent } from '@munichat/shared';
+import { SocketEvent } from '@elyzian/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { MessagesService } from '../messages/messages.service';
 import { toMessageDto } from '../messages/message-response.mapper';

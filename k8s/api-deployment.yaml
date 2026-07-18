@@ -6,32 +6,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: munichat-api
-  namespace: munichat
+  name: elyzian-api
+  namespace: elyzian
   labels:
-    app: munichat-api
+    app: elyzian-api
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: munichat-api
+      app: elyzian-api
   template:
     metadata:
       labels:
-        app: munichat-api
+        app: elyzian-api
     spec:
       securityContext:
         runAsNonRoot: true
       containers:
         - name: api
-          image: <REPLACE_WITH_REGISTRY>/munichat-api:<REPLACE_WITH_TAG>
+          image: <REPLACE_WITH_REGISTRY>/elyzian-api:<REPLACE_WITH_TAG>
           ports:
             - containerPort: 3000
           envFrom:
             - configMapRef:
-                name: munichat-config
+                name: elyzian-config
             - secretRef:
-                name: munichat-secret
+                name: elyzian-secret
           # Real Prisma -> Postgres ping (GET /health). Correct semantics for
           # "stop routing traffic to this pod" - takes it out of the Service
           # endpoints list without killing it.

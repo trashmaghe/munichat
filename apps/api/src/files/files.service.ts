@@ -10,7 +10,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Attachment } from '@prisma/client';
-import { PresignUploadResponse } from '@munichat/shared';
+import { PresignUploadResponse } from '@elyzian/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { createS3Client } from './files.s3-client';
 

@@ -2,7 +2,7 @@
 
 <img src="docs/assets/brasao-pmns.png" width="120" alt="Brasão de Nova Serrana" />
 
-# MuniChat
+# Elyzian
 
 ### Real-Time Municipal Chat Platform
 
@@ -113,7 +113,7 @@ npm run dev                # starts packages/shared (watch), the API, and the we
 ## Project Structure
 
 ```
-munichat/
+elyzian/
 ├── apps/
 │   ├── api/                # NestJS backend (REST + Socket.IO)
 │   │   ├── prisma/         # schema + migrations

@@ -15,7 +15,7 @@ import {
   RmmAlertSeverity,
   rmmAlertWebhookSchema,
   SocketEvent,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { ChannelsService } from '../channels/channels.service';

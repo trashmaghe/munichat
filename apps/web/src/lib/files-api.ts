@@ -1,4 +1,4 @@
-import { presignUploadResponseSchema, type PresignUploadResponse } from '@munichat/shared';
+import { presignUploadResponseSchema, type PresignUploadResponse } from '@elyzian/shared';
 import { apiFetch } from '@/lib/api-client';
 
 export async function presignUpload(

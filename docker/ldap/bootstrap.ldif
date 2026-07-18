@@ -1,55 +1,55 @@
-dn: ou=people,dc=munichat,dc=local
+dn: ou=people,dc=elyzian,dc=local
 objectClass: organizationalUnit
 ou: people
 
-dn: ou=groups,dc=munichat,dc=local
+dn: ou=groups,dc=elyzian,dc=local
 objectClass: organizationalUnit
 ou: groups
 
-dn: uid=jsilva,ou=people,dc=munichat,dc=local
+dn: uid=jsilva,ou=people,dc=elyzian,dc=local
 objectClass: inetOrgPerson
 uid: jsilva
 cn: Joao Silva
 sn: Silva
 givenName: Joao
 displayName: Joao Silva
-mail: jsilva@munichat.local
+mail: jsilva@elyzian.local
 departmentNumber: TI
 userPassword: devpassword123
 
-dn: uid=mferreira,ou=people,dc=munichat,dc=local
+dn: uid=mferreira,ou=people,dc=elyzian,dc=local
 objectClass: inetOrgPerson
 uid: mferreira
 cn: Maria Ferreira
 sn: Ferreira
 givenName: Maria
 displayName: Maria Ferreira
-mail: mferreira@munichat.local
+mail: mferreira@elyzian.local
 departmentNumber: Financas
 userPassword: devpassword123
 
-dn: uid=adossantos,ou=people,dc=munichat,dc=local
+dn: uid=adossantos,ou=people,dc=elyzian,dc=local
 objectClass: inetOrgPerson
 uid: adossantos
 cn: Ana Dos Santos
 sn: Dos Santos
 givenName: Ana
 displayName: Ana Dos Santos
-mail: adossantos@munichat.local
+mail: adossantos@elyzian.local
 departmentNumber: TI
 userPassword: devpassword123
 
-dn: cn=ti,ou=groups,dc=munichat,dc=local
+dn: cn=ti,ou=groups,dc=elyzian,dc=local
 objectClass: groupOfNames
 cn: ti
 description: Departamento de TI
-member: cn=admin,dc=munichat,dc=local
-member: uid=jsilva,ou=people,dc=munichat,dc=local
-member: uid=adossantos,ou=people,dc=munichat,dc=local
+member: cn=admin,dc=elyzian,dc=local
+member: uid=jsilva,ou=people,dc=elyzian,dc=local
+member: uid=adossantos,ou=people,dc=elyzian,dc=local
 
-dn: cn=financas,ou=groups,dc=munichat,dc=local
+dn: cn=financas,ou=groups,dc=elyzian,dc=local
 objectClass: groupOfNames
 cn: financas
 description: Departamento de Financas
-member: cn=admin,dc=munichat,dc=local
-member: uid=mferreira,ou=people,dc=munichat,dc=local
+member: cn=admin,dc=elyzian,dc=local
+member: uid=mferreira,ou=people,dc=elyzian,dc=local

@@ -4,7 +4,7 @@ import {
   type CurrentUserResponse,
   type LoginRequest,
   type LoginResponse,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { apiFetch } from '@/lib/api-client';
 
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {

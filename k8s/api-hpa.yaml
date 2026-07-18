@@ -3,13 +3,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: munichat-api
-  namespace: munichat
+  name: elyzian-api
+  namespace: elyzian
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: munichat-api
+    name: elyzian-api
   minReplicas: 2
   maxReplicas: 6
   metrics:

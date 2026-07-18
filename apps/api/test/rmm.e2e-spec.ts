@@ -110,7 +110,7 @@ describe('RMM agents + remote control (e2e)', () => {
     // deployment would need to bootstrap its first RMM operator today.
     await loginAndGetCookie('jsilva');
     const channel = await prisma.channel.findUniqueOrThrow({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=munichat,dc=local' },
+      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
     });
     channelId = channel.id;
     const jsilva = await prisma.user.findUniqueOrThrow({

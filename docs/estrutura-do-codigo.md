@@ -1,4 +1,4 @@
-# Estrutura do Código — MuniChat
+# Estrutura do Código — Elyzian
 
 > Documento em português (pt-BR) descrevendo a organização completa do
 > repositório: o que é cada pasta, cada módulo e como as peças se conectam.
@@ -6,7 +6,7 @@
 
 ## Visão geral
 
-O MuniChat é uma plataforma de chat corporativo em tempo real, auto-hospedada,
+O Elyzian é uma plataforma de chat corporativo em tempo real, auto-hospedada,
 feita para a Prefeitura Municipal de Nova Serrana. Substitui WhatsApp/Spark por
 uma ferramenta interna com **login via Active Directory**, **canais por
 departamento** (criados automaticamente a partir dos grupos do AD) e **abertura
@@ -15,7 +15,7 @@ de chamados no GLPI** direto do chat.
 É um **monorepo** gerenciado por *npm workspaces*, com três pacotes:
 
 ```
-munichat/
+elyzian/
 ├── apps/
 │   ├── api/          # Backend NestJS (API REST + WebSocket)
 │   └── web/          # Frontend React (SPA)
@@ -278,7 +278,7 @@ e o rastreio de resolvido/não-resolvido usa `RmmAlertRef`, espelhando
 `TicketRef`.
 
 `getMeshControlUrls` chama `GET /agents/{id}/meshcentral/` do próprio Tactical
-RMM, que já medeia uma sessão MeshCentral ("Take Control") sem que o MuniChat
+RMM, que já medeia uma sessão MeshCentral ("Take Control") sem que o Elyzian
 precise de credenciais separadas do MeshCentral. A URL retornada carrega um
 token de login **de uso único** — é tratada como uma credencial ao portador:
 nunca persistida, nunca postada numa mensagem de chat, devolvida só na

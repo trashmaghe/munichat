@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: munichat-api
-  namespace: munichat
+  name: elyzian-api
+  namespace: elyzian
 spec:
   type: ClusterIP
   selector:
-    app: munichat-api
+    app: elyzian-api
   ports:
     - port: 3000
       targetPort: 3000

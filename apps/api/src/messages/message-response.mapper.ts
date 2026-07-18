@@ -9,7 +9,7 @@ import {
   Attachment,
   Message as MessageDto,
   ReplyPreview,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { toUserSummary } from '../users/user-summary.mapper';
 
 export type ReplyToMessage = MessageModel & {

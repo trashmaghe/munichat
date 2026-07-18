@@ -1,5 +1,5 @@
 import { User } from '@prisma/client';
-import { CurrentUserResponse } from '@munichat/shared';
+import { CurrentUserResponse } from '@elyzian/shared';
 
 export function toCurrentUserResponse(user: User): CurrentUserResponse {
   return {

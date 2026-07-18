@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Message } from '@munichat/shared';
+import type { Message } from '@elyzian/shared';
 import { computeMessageGrouping } from '@/lib/message-grouping';
 
 const author = { id: 'user-1', username: 'jsilva', displayName: 'Joao Silva', avatarUrl: null };

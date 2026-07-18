@@ -10,7 +10,7 @@ import {
 import {
   ALLOWED_UPLOAD_MIME_TYPES,
   MAX_UPLOAD_SIZE_BYTES,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 
 export class PresignUploadRequestDto {
   @IsString()

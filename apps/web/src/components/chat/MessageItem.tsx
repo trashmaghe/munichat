@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { Download, ExternalLink, Pencil, Reply, Smile, Trash2 } from 'lucide-react';
-import type { Message } from '@munichat/shared';
+import type { Message } from '@elyzian/shared';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

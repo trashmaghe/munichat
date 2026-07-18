@@ -15,7 +15,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import type { User } from '@prisma/client';
-import type { PresignUploadResponse } from '@munichat/shared';
+import type { PresignUploadResponse } from '@elyzian/shared';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChannelsService } from '../channels/channels.service';

@@ -8,11 +8,11 @@ import { Client, Change, Attribute } from 'ldapts';
 import {
   currentUserResponseSchema,
   loginResponseSchema,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { AppModule } from './../src/app.module';
 
-const FINANCAS_GROUP_DN = 'cn=financas,ou=groups,dc=munichat,dc=local';
-const MFERREIRA_DN = 'uid=mferreira,ou=people,dc=munichat,dc=local';
+const FINANCAS_GROUP_DN = 'cn=financas,ou=groups,dc=elyzian,dc=local';
+const MFERREIRA_DN = 'uid=mferreira,ou=people,dc=elyzian,dc=local';
 
 async function removeGroupMember(
   groupDn: string,
@@ -121,7 +121,7 @@ describe('Auth (e2e)', () => {
 
     // The login-time channel sync created a ChannelMember row for the seeded "ti" group
     const channel = await prisma.channel.findUnique({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=munichat,dc=local' },
+      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
     });
     expect(channel).not.toBeNull();
     const membership = await prisma.channelMember.findUnique({

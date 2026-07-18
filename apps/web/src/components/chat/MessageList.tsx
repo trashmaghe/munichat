@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Message } from '@munichat/shared';
+import type { Message } from '@elyzian/shared';
 import { useChannelMessages } from '@/hooks/useChannelMessages';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { computeMessageGrouping } from '@/lib/message-grouping';

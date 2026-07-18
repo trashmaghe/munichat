@@ -10,7 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import type { Channel, User } from '@prisma/client';
-import type { RmmAgentSummary, RmmRemoteControlUrls } from '@munichat/shared';
+import type { RmmAgentSummary, RmmRemoteControlUrls } from '@elyzian/shared';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChannelsService } from '../channels/channels.service';

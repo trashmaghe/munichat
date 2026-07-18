@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { Message } from '@munichat/shared';
+import type { Message } from '@elyzian/shared';
 import { MessageItem } from '@/components/chat/MessageItem';
 
 const author = { id: 'user-1', username: 'jsilva', displayName: 'Joao Silva', avatarUrl: null };

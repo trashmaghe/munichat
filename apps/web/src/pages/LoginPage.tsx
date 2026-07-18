@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { loginRequestSchema } from '@munichat/shared';
+import { loginRequestSchema } from '@elyzian/shared';
 import { login } from '@/lib/auth-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +43,7 @@ export function LoginPage() {
       />
       <Card className="relative z-10 w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Sign in to MuniChat</CardTitle>
+          <CardTitle>Sign in to Elyzian</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>

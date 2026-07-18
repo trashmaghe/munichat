@@ -1,4 +1,4 @@
-# Ideias futuras — MuniChat
+# Ideias futuras — Elyzian
 
 > Candidatos a funcionalidades além da Fase 6. Organizados por área e por
 > esforço/impacto, pensando no contexto real: uma prefeitura substituindo

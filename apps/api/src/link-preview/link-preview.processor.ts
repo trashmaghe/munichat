@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { LinkPreviewStatus } from '@prisma/client';
-import { SocketEvent } from '@munichat/shared';
+import { SocketEvent } from '@elyzian/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { MessagesService } from '../messages/messages.service';
 import { toMessageDto } from '../messages/message-response.mapper';

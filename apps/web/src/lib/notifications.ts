@@ -1,4 +1,4 @@
-import type { Message } from '@munichat/shared';
+import type { Message } from '@elyzian/shared';
 import { router } from '@/router';
 
 export interface ShouldNotifyContext {

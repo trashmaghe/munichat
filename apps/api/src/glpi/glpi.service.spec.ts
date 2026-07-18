@@ -42,7 +42,7 @@ describe('GlpiService', () => {
       const result = await service.createTicket({
         title: 'Printer jammed',
         content: 'printer on 3rd floor is jammed',
-        requesterLabel: 'Reported via MuniChat by Joao Silva (jsilva)',
+        requesterLabel: 'Reported via Elyzian by Joao Silva (jsilva)',
       });
 
       expect(result).toEqual({ glpiTicketId: 42, status: 'New' });
@@ -68,7 +68,7 @@ describe('GlpiService', () => {
       };
       expect(sentBody.input.name).toBe('Printer jammed');
       expect(sentBody.input.content).toContain(
-        'Reported via MuniChat by Joao Silva (jsilva)',
+        'Reported via Elyzian by Joao Silva (jsilva)',
       );
     });
 
@@ -84,7 +84,7 @@ describe('GlpiService', () => {
       const result = await service.createTicket({
         title: 'Title',
         content: 'Content',
-        requesterLabel: 'Reported via MuniChat by Joao Silva (jsilva)',
+        requesterLabel: 'Reported via Elyzian by Joao Silva (jsilva)',
       });
 
       expect(result).toEqual({ glpiTicketId: 99, status: 'New' });
@@ -100,7 +100,7 @@ describe('GlpiService', () => {
         service.createTicket({
           title: 'Title',
           content: 'Content',
-          requesterLabel: 'Reported via MuniChat by Joao Silva (jsilva)',
+          requesterLabel: 'Reported via Elyzian by Joao Silva (jsilva)',
         }),
       ).rejects.toBeInstanceOf(GlpiUnavailableError);
     });

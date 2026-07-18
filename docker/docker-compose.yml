@@ -66,8 +66,8 @@ services:
     image: osixia/openldap:1.5.0
     restart: unless-stopped
     environment:
-      LDAP_ORGANISATION: MuniChat
-      LDAP_DOMAIN: munichat.local
+      LDAP_ORGANISATION: Elyzian
+      LDAP_DOMAIN: elyzian.local
       LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
       LDAP_CONFIG_PASSWORD: ${LDAP_ADMIN_PASSWORD}
       LDAP_TLS: "false"

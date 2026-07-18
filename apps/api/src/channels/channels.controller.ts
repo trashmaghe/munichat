@@ -6,7 +6,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { User } from '@prisma/client';
-import type { ChannelMemberSummary, ChannelSummary } from '@munichat/shared';
+import type { ChannelMemberSummary, ChannelSummary } from '@elyzian/shared';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChannelsService } from './channels.service';

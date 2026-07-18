@@ -14,7 +14,7 @@ import {
   messageHistoryResponseSchema,
   presignUploadResponseSchema,
   SocketEvent,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { AppModule } from './../src/app.module';
 import { RedisIoAdapter } from '../src/chat/redis-io.adapter';
 
@@ -122,7 +122,7 @@ describe('Rich content (e2e)', () => {
 
     await loginAndGetCookie('jsilva');
     const channel = await prisma.channel.findUnique({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=munichat,dc=local' },
+      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
     });
     channelId = channel!.id;
 

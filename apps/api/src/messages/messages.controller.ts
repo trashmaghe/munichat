@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
-import type { MessageHistoryResponse } from '@munichat/shared';
+import type { MessageHistoryResponse } from '@elyzian/shared';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChannelsService } from '../channels/channels.service';

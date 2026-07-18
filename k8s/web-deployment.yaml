@@ -3,25 +3,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: munichat-web
-  namespace: munichat
+  name: elyzian-web
+  namespace: elyzian
   labels:
-    app: munichat-web
+    app: elyzian-web
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: munichat-web
+      app: elyzian-web
   template:
     metadata:
       labels:
-        app: munichat-web
+        app: elyzian-web
     spec:
       securityContext:
         runAsNonRoot: true
       containers:
         - name: web
-          image: <REPLACE_WITH_REGISTRY>/munichat-web:<REPLACE_WITH_TAG>
+          image: <REPLACE_WITH_REGISTRY>/elyzian-web:<REPLACE_WITH_TAG>
           ports:
             - containerPort: 80
           # nginx serving prebuilt static files needs nothing deeper than a
