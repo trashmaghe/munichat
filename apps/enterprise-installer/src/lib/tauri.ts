@@ -14,7 +14,7 @@ export interface PreflightReport {
   dockerRunning: boolean;
   composeAvailable: boolean;
   dockerVersion: string | null;
-  repoDir: string | null;
+  stackBundled: boolean;
 }
 
 export interface DeployResult {
@@ -39,24 +39,28 @@ export async function preflight(): Promise<PreflightReport> {
       dockerRunning: false,
       composeAvailable: false,
       dockerVersion: null,
-      repoDir: null,
+      stackBundled: true,
     };
   }
   return invoke<PreflightReport>('preflight');
 }
 
-export async function writeEnvFile(repoDir: string, content: string): Promise<string> {
-  if (!isTauri()) return `${repoDir}/.env`;
-  return invoke<string>('write_env_file', { repoDir, content });
+/** Open a URL in the operator's default browser (the "Get Docker" helper). */
+export async function openUrl(url: string): Promise<void> {
+  if (!isTauri()) {
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+  await invoke('open_url', { url });
 }
 
 /**
- * Deploy the stack (`docker compose up -d`, plus the edge overlay when
- * requested). Log lines stream back through the `deploy-log` event; the promise
- * resolves once compose exits.
+ * Deploy the stack: stage the compose files, write `.env`, `docker compose
+ * pull`, then `up -d` (plus the edge overlay when requested). Log lines stream
+ * back through the `deploy-log` event; the promise resolves once compose exits.
  */
 export async function deployStack(
-  repoDir: string,
+  envContent: string,
   useEdge: boolean,
   onLog: (line: DeployLogLine) => void,
 ): Promise<DeployResult> {
@@ -66,7 +70,7 @@ export async function deployStack(
   }
   const unlisten = await listen<DeployLogLine>('deploy-log', (event) => onLog(event.payload));
   try {
-    return await invoke<DeployResult>('deploy_stack', { repoDir, useEdge });
+    return await invoke<DeployResult>('deploy_stack', { envContent, useEdge });
   } finally {
     unlisten();
   }

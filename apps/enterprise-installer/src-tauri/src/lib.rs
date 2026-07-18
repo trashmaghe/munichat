@@ -1,8 +1,11 @@
 //! Native backend for the Elyzian Enterprise Installer.
 //!
-//! Four commands drive the wizard: `preflight` (is Docker here?), `write_env_file`
-//! (persist the generated `.env`), `deploy_stack` (run Docker Compose, streaming
-//! its output back to the UI), and `stack_health` (did the API come up?).
+//! The installer ships the `docker/` compose tree as a bundled resource. To
+//! deploy it copies that tree into a writable working directory, writes the
+//! generated `.env` beside it, then runs `docker compose pull` + `up -d`
+//! against the images compose — downloading the app images from the registry,
+//! so the server needs no source checkout. Output streams to the UI via the
+//! `deploy-log` event.
 
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -18,7 +21,7 @@ struct PreflightReport {
     docker_running: bool,
     compose_available: bool,
     docker_version: Option<String>,
-    repo_dir: Option<String>,
+    stack_bundled: bool,
 }
 
 #[derive(Serialize)]
@@ -34,45 +37,53 @@ struct DeployLogLine {
     line: String,
 }
 
-/// Locate the directory that holds `docker/docker-compose.yml` — the Elyzian
-/// stack root. Search the current dir and the executable's dir, walking up a
-/// few levels so the installer works whether it's run from the repo or shipped
-/// next to the compose files.
-fn find_stack_dir() -> Option<PathBuf> {
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Ok(cwd) = std::env::current_dir() {
-        candidates.push(cwd);
-    }
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            candidates.push(dir.to_path_buf());
-        }
-    }
+const IMAGES_COMPOSE: &str = "docker/docker-compose.images.yml";
+const EDGE_COMPOSE: &str = "docker/docker-compose.edge.yml";
 
-    for start in candidates {
-        let mut dir: Option<&Path> = Some(start.as_path());
-        for _ in 0..6 {
-            let Some(d) = dir else { break };
-            if d.join("docker").join("docker-compose.yml").is_file() {
-                return Some(d.to_path_buf());
-            }
-            dir = d.parent();
+/// The directory that contains `docker/…` — bundled resources in a packaged
+/// install, or the repo root during `tauri dev`.
+fn stack_source(app: &tauri::AppHandle) -> Option<PathBuf> {
+    if let Ok(res) = app.path().resource_dir() {
+        if res.join(IMAGES_COMPOSE).is_file() {
+            return Some(res);
         }
+    }
+    // Dev fallback: walk up from the cwd to find the repo's docker/ tree.
+    let mut dir = std::env::current_dir().ok();
+    for _ in 0..6 {
+        let d = dir?;
+        if d.join(IMAGES_COMPOSE).is_file() {
+            return Some(d);
+        }
+        dir = d.parent().map(Path::to_path_buf);
     }
     None
 }
 
-/// Resolve the caller-supplied repo dir, falling back to auto-detection when it
-/// is empty or ".".
-fn resolve_repo_dir(input: &str) -> Option<PathBuf> {
-    let trimmed = input.trim();
-    if !trimmed.is_empty() && trimmed != "." {
-        let p = PathBuf::from(trimmed);
-        if p.join("docker").join("docker-compose.yml").is_file() {
-            return Some(p);
+/// Writable working directory the stack actually runs from.
+fn work_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let base = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("No writable app-data directory: {e}"))?;
+    let dir = base.join("stack");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create {}: {e}", dir.display()))?;
+    Ok(dir)
+}
+
+fn copy_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let from = entry.path();
+        let to = dst.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir(&from, &to)?;
+        } else {
+            std::fs::copy(&from, &to)?;
         }
     }
-    find_stack_dir()
+    Ok(())
 }
 
 fn run_capture(program: &str, args: &[&str]) -> Option<String> {
@@ -85,101 +96,34 @@ fn run_capture(program: &str, args: &[&str]) -> Option<String> {
 }
 
 #[tauri::command]
-fn preflight() -> PreflightReport {
+fn preflight(app: tauri::AppHandle) -> PreflightReport {
     let docker_installed = run_capture("docker", &["--version"]).is_some();
-    // `docker version` talking to the server proves the daemon is up.
     let server_version = run_capture("docker", &["version", "--format", "{{.Server.Version}}"]);
     let docker_running = server_version.as_deref().map(|s| !s.is_empty()).unwrap_or(false);
     let compose_available = run_capture("docker", &["compose", "version"]).is_some();
-    let repo_dir = find_stack_dir().map(|p| p.to_string_lossy().to_string());
+    let stack_bundled = stack_source(&app).is_some();
 
     PreflightReport {
         docker_installed,
         docker_running,
         compose_available,
         docker_version: server_version.filter(|s| !s.is_empty()),
-        repo_dir,
+        stack_bundled,
     }
 }
 
+/// Open a URL in the operator's default browser (used by the "Get Docker
+/// Desktop" helper).
 #[tauri::command]
-fn write_env_file(repo_dir: String, content: String) -> Result<String, String> {
-    let dir = resolve_repo_dir(&repo_dir).ok_or_else(|| {
-        "Could not locate the Elyzian stack (docker/docker-compose.yml). Place the installer beside it.".to_string()
-    })?;
-    let path = dir.join(".env");
-    std::fs::write(&path, content).map_err(|e| format!("Failed to write {}: {e}", path.display()))?;
-    Ok(path.to_string_lossy().to_string())
-}
+fn open_url(url: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    let result = Command::new("cmd").args(["/C", "start", "", &url]).spawn();
+    #[cfg(target_os = "macos")]
+    let result = Command::new("open").arg(&url).spawn();
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let result = Command::new("xdg-open").arg(&url).spawn();
 
-/// Run `docker compose … up -d`, streaming each output line to the frontend via
-/// the `deploy-log` event. Resolves once compose exits.
-#[tauri::command]
-fn deploy_stack(app: tauri::AppHandle, repo_dir: String, use_edge: bool) -> Result<DeployResult, String> {
-    let dir = resolve_repo_dir(&repo_dir)
-        .ok_or_else(|| "Could not locate the Elyzian stack (docker/docker-compose.yml).".to_string())?;
-
-    let mut args: Vec<String> = vec![
-        "compose".into(),
-        "-f".into(),
-        "docker/docker-compose.yml".into(),
-    ];
-    if use_edge {
-        args.push("-f".into());
-        args.push("docker/docker-compose.edge.yml".into());
-    }
-    // `--build` so the API/web images are built from the release source on
-    // first run; on later runs Compose reuses the cached layers.
-    args.extend([
-        "--env-file".into(),
-        ".env".into(),
-        "up".into(),
-        "-d".into(),
-        "--build".into(),
-    ]);
-
-    emit_log(&app, "status", &format!("$ docker {}", args.join(" ")));
-
-    let mut child = Command::new("docker")
-        .args(&args)
-        .current_dir(&dir)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Failed to launch Docker Compose: {e}"))?;
-
-    let stdout = child.stdout.take();
-    let stderr = child.stderr.take();
-
-    let app_out = app.clone();
-    let out_handle = std::thread::spawn(move || {
-        if let Some(out) = stdout {
-            for line in BufReader::new(out).lines().map_while(Result::ok) {
-                emit_log(&app_out, "stdout", &line);
-            }
-        }
-    });
-    let app_err = app.clone();
-    let err_handle = std::thread::spawn(move || {
-        if let Some(err) = stderr {
-            // Compose writes pull/create progress to stderr even on success.
-            for line in BufReader::new(err).lines().map_while(Result::ok) {
-                emit_log(&app_err, "stderr", &line);
-            }
-        }
-    });
-
-    let status = child.wait().map_err(|e| format!("Docker Compose failed: {e}"))?;
-    let _ = out_handle.join();
-    let _ = err_handle.join();
-
-    let ok = status.success();
-    emit_log(
-        &app,
-        "status",
-        if ok { "Compose finished — containers are starting." } else { "Compose exited with an error." },
-    );
-    Ok(DeployResult { ok, exit_code: status.code() })
+    result.map(|_| ()).map_err(|e| format!("Could not open {url}: {e}"))
 }
 
 fn emit_log(app: &tauri::AppHandle, stream: &str, line: &str) {
@@ -187,6 +131,84 @@ fn emit_log(app: &tauri::AppHandle, stream: &str, line: &str) {
         "deploy-log",
         DeployLogLine { stream: stream.to_string(), line: line.to_string() },
     );
+}
+
+/// Run one streaming `docker compose …` command from `dir`, forwarding output.
+/// Returns the process exit code.
+fn run_compose(app: &tauri::AppHandle, dir: &Path, extra: &[&str], use_edge: bool) -> Result<i32, String> {
+    let mut args: Vec<String> = vec!["compose".into(), "-f".into(), IMAGES_COMPOSE.into()];
+    if use_edge {
+        args.push("-f".into());
+        args.push(EDGE_COMPOSE.into());
+    }
+    args.extend(["--env-file".into(), ".env".into()]);
+    args.extend(extra.iter().map(|s| s.to_string()));
+
+    emit_log(app, "status", &format!("$ docker {}", args.join(" ")));
+
+    let mut child = Command::new("docker")
+        .args(&args)
+        .current_dir(dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to launch Docker Compose: {e}"))?;
+
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+    let app_out = app.clone();
+    let out = std::thread::spawn(move || {
+        if let Some(o) = stdout {
+            for line in BufReader::new(o).lines().map_while(Result::ok) {
+                emit_log(&app_out, "stdout", &line);
+            }
+        }
+    });
+    let app_err = app.clone();
+    let err = std::thread::spawn(move || {
+        if let Some(e) = stderr {
+            for line in BufReader::new(e).lines().map_while(Result::ok) {
+                emit_log(&app_err, "stderr", &line);
+            }
+        }
+    });
+
+    let status = child.wait().map_err(|e| format!("Docker Compose failed: {e}"))?;
+    let _ = out.join();
+    let _ = err.join();
+    Ok(status.code().unwrap_or(-1))
+}
+
+/// Prepare the working directory, then pull the images and bring the stack up,
+/// streaming all output. `env_content` is the generated `.env`.
+#[tauri::command]
+fn deploy_stack(app: tauri::AppHandle, env_content: String, use_edge: bool) -> Result<DeployResult, String> {
+    let source = stack_source(&app)
+        .ok_or_else(|| "The Elyzian stack files are missing from this installer.".to_string())?;
+    let dir = work_dir(&app)?;
+
+    emit_log(&app, "status", "Preparing the stack files…");
+    copy_dir(&source.join("docker"), &dir.join("docker"))
+        .map_err(|e| format!("Failed to stage the compose files: {e}"))?;
+    std::fs::write(dir.join(".env"), &env_content)
+        .map_err(|e| format!("Failed to write .env: {e}"))?;
+
+    emit_log(&app, "status", "Downloading Elyzian images…");
+    let pull = run_compose(&app, &dir, &["pull"], use_edge)?;
+    if pull != 0 {
+        emit_log(&app, "stderr", "Image download failed — check the registry/tag and network.");
+        return Ok(DeployResult { ok: false, exit_code: Some(pull) });
+    }
+
+    emit_log(&app, "status", "Starting the stack…");
+    let up = run_compose(&app, &dir, &["up", "-d"], use_edge)?;
+    let ok = up == 0;
+    emit_log(
+        &app,
+        "status",
+        if ok { "Stack is up — containers are starting." } else { "Compose exited with an error." },
+    );
+    Ok(DeployResult { ok, exit_code: Some(up) })
 }
 
 /// Probe the API's `/health` endpoint. Returns true on a 2xx response.
@@ -203,8 +225,6 @@ fn stack_health(api_url: String) -> bool {
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            // Keep the main window hidden until the WebView paints, avoiding a
-            // white flash on launch.
             if let Some(win) = app.get_webview_window("main") {
                 let _ = win.show();
             }
@@ -212,7 +232,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             preflight,
-            write_env_file,
+            open_url,
             deploy_stack,
             stack_health
         ])

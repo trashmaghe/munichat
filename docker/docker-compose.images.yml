@@ -1,0 +1,183 @@
+# Production stack from PREBUILT images (no source build).
+#
+# This is what the Elyzian Enterprise Installer ships and runs: identical
+# infrastructure to docker-compose.yml, but the api / api-migrate / web services
+# pull published images from a registry instead of building from source, so the
+# server needs only Docker + this compose file + a .env — no checkout.
+#
+#   docker compose -f docker/docker-compose.images.yml --env-file .env pull
+#   docker compose -f docker/docker-compose.images.yml --env-file .env up -d
+#
+# Images + tag come from .env (ELYZIAN_REGISTRY, ELYZIAN_IMAGE_TAG); the web
+# image reads its API/WS origins at runtime, so it is not per-deployment.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      mc mb --ignore-existing local/$$MINIO_BUCKET
+      "
+
+  openldap:
+    image: osixia/openldap:1.5.0
+    restart: unless-stopped
+    environment:
+      LDAP_ORGANISATION: Elyzian
+      LDAP_DOMAIN: elyzian.local
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      LDAP_CONFIG_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      LDAP_TLS: "false"
+    ports:
+      - "${LDAP_PORT}:389"
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+      - ./ldap/memberof-override.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/10-memberof-override.ldif:ro
+      - ./ldap/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/50-bootstrap.ldif:ro
+    healthcheck:
+      test: ["CMD", "ldapsearch", "-x", "-H", "ldap://localhost", "-s", "base", "-b", "", "(objectclass=*)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api-migrate:
+    image: ${ELYZIAN_REGISTRY:-ghcr.io/trashmaghe}/elyzian-api:${ELYZIAN_IMAGE_TAG:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    command: ["node_modules/.bin/prisma", "migrate", "deploy", "--schema", "apps/api/prisma/schema.prisma"]
+
+  api:
+    image: ${ELYZIAN_REGISTRY:-ghcr.io/trashmaghe}/elyzian-api:${ELYZIAN_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      openldap:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      api-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      LDAP_URL: ${LDAP_URL}
+      LDAP_BIND_DN: ${LDAP_BIND_DN}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD}
+      LDAP_BASE_DN: ${LDAP_BASE_DN}
+      LDAP_USER_SEARCH_BASE: ${LDAP_USER_SEARCH_BASE}
+      LDAP_GROUP_SEARCH_BASE: ${LDAP_GROUP_SEARCH_BASE}
+      LDAP_USERNAME_ATTRIBUTE: ${LDAP_USERNAME_ATTRIBUTE}
+      LDAP_UNIQUE_ID_ATTRIBUTE: ${LDAP_UNIQUE_ID_ATTRIBUTE}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL}
+      PORT: ${PORT}
+      NODE_ENV: production
+      WEB_ORIGIN: ${WEB_ORIGIN}
+      GLPI_URL: ${GLPI_URL}
+      GLPI_APP_TOKEN: ${GLPI_APP_TOKEN}
+      GLPI_USER_TOKEN: ${GLPI_USER_TOKEN}
+      GLPI_WEBHOOK_SECRET: ${GLPI_WEBHOOK_SECRET}
+      GLPI_WEBHOOK_TICKET_ID_FIELD: ${GLPI_WEBHOOK_TICKET_ID_FIELD}
+      RMM_URL: ${RMM_URL}
+      RMM_API_KEY: ${RMM_API_KEY}
+      RMM_WEBHOOK_SECRET: ${RMM_WEBHOOK_SECRET}
+      RMM_ALERT_CHANNEL_NAME: ${RMM_ALERT_CHANNEL_NAME}
+      RMM_AUTO_TICKET_SEVERITY: ${RMM_AUTO_TICKET_SEVERITY}
+    ports:
+      - "${PORT}:${PORT}"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${PORT}/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: ${ELYZIAN_REGISTRY:-ghcr.io/trashmaghe}/elyzian-web:${ELYZIAN_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - api
+    # Read at container start to write /config.js — no rebuild per deployment.
+    environment:
+      VITE_API_URL: ${VITE_API_URL}
+      VITE_WS_URL: ${VITE_WS_URL}
+    ports:
+      - "8080:80"
+
+volumes:
+  pg_data:
+  redis_data:
+  minio_data:
+  ldap_data:
+  ldap_config:

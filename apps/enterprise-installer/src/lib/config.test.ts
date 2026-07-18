@@ -41,6 +41,8 @@ describe('buildEnvFile', () => {
       'RMM_AUTO_TICKET_SEVERITY',
       'VITE_API_URL',
       'APP_DOMAIN',
+      'ELYZIAN_REGISTRY',
+      'ELYZIAN_IMAGE_TAG',
     ]) {
       expect(env[key], key).toBeTruthy();
     }

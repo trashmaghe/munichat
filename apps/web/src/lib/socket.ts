@@ -1,10 +1,11 @@
 import { io, type Socket } from 'socket.io-client';
 import { SocketEvent, type Message, type PendingAttachment } from '@elyzian/shared';
+import { WS_URL } from '@/lib/runtime-config';
 
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
-  socket ??= io(import.meta.env.VITE_WS_URL, {
+  socket ??= io(WS_URL, {
     withCredentials: true,
     autoConnect: false,
   });

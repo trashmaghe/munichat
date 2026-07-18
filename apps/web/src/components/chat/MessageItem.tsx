@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Download, ExternalLink, Pencil, Reply, Smile, Trash2 } from 'lucide-react';
 import type { Message } from '@elyzian/shared';
 import { cn } from '@/lib/utils';
+import { API_URL } from '@/lib/runtime-config';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserAvatar } from '@/components/chat/UserAvatar';
@@ -42,7 +43,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 function attachmentUrl(attachmentId: string): string {
-  return `${import.meta.env.VITE_API_URL}/files/${attachmentId}`;
+  return `${API_URL}/files/${attachmentId}`;
 }
 
 const TICKET_STATUS_STYLES: Record<string, string> = {

@@ -60,3 +60,12 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgb(166 130 47 / 
 .auto-actions { display: flex; gap: 8px; justify-content: center; }
 
 footer { position: absolute; bottom: 16px; font-size: 0.72rem; color: var(--muted); }
+
+.update-pill {
+  position: absolute; top: 16px; z-index: 2;
+  font-family: inherit; font-size: 0.78rem; color: var(--text);
+  background: color-mix(in oklab, var(--gold) 16%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--gold) 45%, transparent);
+  border-radius: 999px; padding: 7px 16px; cursor: pointer;
+}
+.update-pill:hover { background: color-mix(in oklab, var(--gold) 24%, var(--surface)); }

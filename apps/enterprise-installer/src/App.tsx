@@ -11,12 +11,14 @@ import {
 } from './lib/config';
 import {
   deployStack,
+  openUrl,
   preflight,
   stackHealth,
-  writeEnvFile,
   type DeployLogLine,
   type PreflightReport,
 } from './lib/tauri';
+
+const DOCKER_DOWNLOAD_URL = 'https://www.docker.com/products/docker-desktop/';
 
 type StepId = 'welcome' | 'database' | 'storage' | 'directory' | 'integrations' | 'network' | 'review' | 'deploy';
 
@@ -162,9 +164,9 @@ function WelcomeStep({ onReady }: { onReady: () => void }) {
           detail={report?.composeAvailable ? 'docker compose' : 'Compose plugin missing'}
         />
         <CheckRow
-          state={checking ? 'pending' : report?.repoDir ? 'ok' : 'bad'}
-          label="Elyzian stack located"
-          detail={report?.repoDir ?? 'docker-compose.yml not found next to the installer'}
+          state={checking ? 'pending' : report?.stackBundled ? 'ok' : 'bad'}
+          label="Elyzian stack bundled"
+          detail={report?.stackBundled ? 'Compose files shipped with the installer' : 'Stack files missing from this build'}
         />
       </div>
 
@@ -172,16 +174,23 @@ function WelcomeStep({ onReady }: { onReady: () => void }) {
         <div className="banner warn" style={{ marginTop: 16 }}>
           <span>⚠</span>
           <span>
-            One or more prerequisites are missing. Install/start Docker, then re-check. The wizard
-            still lets you prepare the configuration offline.
+            Docker isn’t ready on this machine. Install Docker Desktop (Linux containers), start it,
+            then re-check. The wizard still lets you prepare the configuration offline.
           </span>
         </div>
       )}
 
       <div className="footer-bar">
-        <button className="btn btn-ghost" onClick={() => void run()} disabled={checking}>
-          {checking ? 'Checking…' : 'Re-check'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost" onClick={() => void run()} disabled={checking}>
+            {checking ? 'Checking…' : 'Re-check'}
+          </button>
+          {!checking && !report?.dockerInstalled && (
+            <button className="btn btn-ghost" onClick={() => void openUrl(DOCKER_DOWNLOAD_URL)}>
+              Get Docker Desktop ↗
+            </button>
+          )}
+        </div>
         <button className="btn btn-primary" onClick={onReady}>
           {ready ? 'Continue' : 'Continue anyway'}
         </button>
@@ -432,11 +441,11 @@ function DeployStep({ config }: { config: EnterpriseConfig }) {
 
   async function run() {
     setPhase('running');
-    setLog([{ stream: 'status', line: 'Writing .env and starting the stack…' }]);
-    const repoDir = '.';
+    setLog([{ stream: 'status', line: 'Staging the stack and downloading images…' }]);
     try {
-      await writeEnvFile(repoDir, buildEnvFile(config));
-      const result = await deployStack(repoDir, config.useEdge, (line) => setLog((l) => [...l, line]));
+      const result = await deployStack(buildEnvFile(config), config.useEdge, (line) =>
+        setLog((l) => [...l, line]),
+      );
       if (result.ok) {
         setPhase('done');
         const { viteApiUrl } = { viteApiUrl: config.useEdge ? `https://${config.apiDomain}` : `http://localhost:${config.apiPort}` };

@@ -1,0 +1,68 @@
+name: Release desktop client
+
+# Signed release build of the regular client (@elyzian/desktop) that PRODUCES
+# updater artifacts and publishes them to a GitHub Release, so installed copies
+# auto-update. Requires two repo secrets:
+#   TAURI_SIGNING_PRIVATE_KEY           — the minisign private key (see
+#                                         docs/desktop-apps.md → auto-update)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  — its password ("" if none)
+#
+# The pubkey in apps/desktop/src-tauri/tauri.conf.json must be the matching
+# public key. Tag with client-v* to release.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'client-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - triple: x86_64-pc-windows-msvc
+            arch: x64
+          - triple: aarch64-pc-windows-msvc
+            arch: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.triple }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          key: ${{ matrix.target.triple }}
+
+      - run: npm ci
+
+      # createUpdaterArtifacts is off in the committed config so unsigned builds
+      # work without secrets; flip it on here where the signing key is present.
+      - run: >
+          npm run tauri:build -w @elyzian/desktop --
+          --target ${{ matrix.target.triple }}
+          --config "{\"bundle\":{\"createUpdaterArtifacts\":true}}"
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      # Publishes installers + the .sig + latest.json to the GitHub Release the
+      # updater endpoint reads.
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            apps/desktop/src-tauri/target/${{ matrix.target.triple }}/release/bundle/nsis/*
+            apps/desktop/src-tauri/target/${{ matrix.target.triple }}/release/bundle/msi/*

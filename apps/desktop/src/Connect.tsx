@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AsphodelMark } from './brand';
+import { useUpdate } from './useUpdate';
 
 const STORAGE_KEY = 'elyzian.serverUrl';
 const AUTO_REDIRECT_MS = 1500;
@@ -24,6 +25,7 @@ export function Connect() {
   // When we already know the server, auto-reconnect after a short, cancelable delay.
   const [autoConnecting, setAutoConnecting] = useState<string | null>(stored);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const update = useUpdate();
 
   useEffect(() => {
     if (!autoConnecting) return;
@@ -61,6 +63,17 @@ export function Connect() {
         <span />
         <span />
       </div>
+
+      {update.state.status === 'available' && (
+        <button className="update-pill" onClick={() => void update.install()}>
+          Update to v{update.state.version} — restart to apply
+        </button>
+      )}
+      {update.state.status === 'installing' && (
+        <div className="update-pill" aria-live="polite">
+          Installing update…
+        </div>
+      )}
 
       <main className="card">
         <div className="logo">

@@ -1,9 +1,10 @@
 # Build from the repo root: docker build -f apps/web/Dockerfile .
 #
-# VITE_API_URL/VITE_WS_URL are baked into the static bundle at BUILD time
-# (Vite inlines import.meta.env.VITE_* at build, not runtime) — this image
-# must be rebuilt per environment with different --build-arg values. See
-# k8s/README.md for the tradeoff this implies.
+# The API/WebSocket origins are resolved at RUNTIME (window.__ELYZIAN__, written
+# to /config.js by docker-entrypoint.sh from VITE_API_URL/VITE_WS_URL at
+# container start), so ONE prebuilt image serves any deployment — no rebuild per
+# environment. The build ARGs below remain only as the fallback baked into the
+# bundle for source builds where no runtime config is present.
 
 FROM node:20-alpine AS build
 WORKDIR /app
@@ -39,4 +40,8 @@ RUN npm run build -w apps/web
 FROM nginx:1.27-alpine AS runtime
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+# Regenerates /config.js from the container's env before nginx starts, so the
+# API/WS origins are set per deployment without rebuilding the image.
+COPY apps/web/docker-entrypoint.sh /docker-entrypoint.d/40-elyzian-config.sh
+RUN chmod +x /docker-entrypoint.d/40-elyzian-config.sh
 EXPOSE 80

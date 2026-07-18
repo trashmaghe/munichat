@@ -1,4 +1,5 @@
 import { queryClient } from '@/lib/queryClient';
+import { API_URL } from '@/lib/runtime-config';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -10,7 +11,7 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     ...options,
     credentials: 'include',
     headers: {

@@ -64,6 +64,10 @@ export interface EnterpriseConfig {
   apiDomain: string;
   acmeEmail: string;
   apiPort: string;
+
+  // --- Images (where the installer pulls the app from) ---
+  imageRegistry: string;
+  imageTag: string;
 }
 
 /**
@@ -138,6 +142,9 @@ export function defaultConfig(): EnterpriseConfig {
     apiDomain: 'api.chat.example.gov.br',
     acmeEmail: 'ti@example.gov.br',
     apiPort: '3000',
+
+    imageRegistry: 'ghcr.io/trashmaghe',
+    imageTag: 'latest',
   };
 }
 
@@ -242,6 +249,11 @@ export function buildEnvFile(c: EnterpriseConfig): string {
       line('APP_DOMAIN', c.appDomain),
       line('API_DOMAIN', c.apiDomain),
       line('ACME_EMAIL', c.acmeEmail),
+    ],
+    [
+      '# --- Images (registry the stack is pulled from) ---',
+      line('ELYZIAN_REGISTRY', c.imageRegistry),
+      line('ELYZIAN_IMAGE_TAG', c.imageTag),
     ],
   ];
 

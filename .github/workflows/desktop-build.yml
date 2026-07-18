@@ -1,9 +1,14 @@
 name: Build desktop apps
 
 # Produces the Windows installers for both the regular client (@elyzian/desktop)
-# and the enterprise installer (@elyzian/enterprise-installer). Runs on demand
-# or when a desktop release tag is pushed. The Rust/Tauri toolchain only exists
-# on this Windows job — the normal CI (ci.yml) builds the frontends only.
+# and the enterprise installer (@elyzian/enterprise-installer), across x64, x86
+# (32-bit) and ARM64. Runs on demand or on a desktop release tag. The Rust/Tauri
+# toolchain only exists on this Windows job — normal CI (ci.yml) builds the
+# frontends only.
+#
+# Windows 7 is intentionally not a target: Tauri v2, WebView2 and modern Rust
+# all require Windows 10+. Win7 machines use the hosted web app in a browser
+# (see docs/desktop-apps.md).
 on:
   workflow_dispatch:
   push:
@@ -17,6 +22,15 @@ jobs:
       fail-fast: false
       matrix:
         app: [desktop, enterprise-installer]
+        target:
+          - triple: x86_64-pc-windows-msvc
+            arch: x64
+          - triple: i686-pc-windows-msvc
+            arch: x86
+          - triple: aarch64-pc-windows-msvc
+            arch: arm64
+
+    name: ${{ matrix.app }} (${{ matrix.target.arch }})
 
     steps:
       - uses: actions/checkout@v4
@@ -27,21 +41,24 @@ jobs:
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.triple }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/${{ matrix.app }}/src-tauri
+          key: ${{ matrix.target.triple }}
 
       - run: npm ci
 
       # Builds the frontend (beforeBuildCommand) then compiles + bundles the
-      # native app into NSIS + MSI installers.
-      - run: npm run tauri:build -w @elyzian/${{ matrix.app }}
+      # native app for the target arch into NSIS + MSI installers.
+      - run: npm run tauri:build -w @elyzian/${{ matrix.app }} -- --target ${{ matrix.target.triple }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: elyzian-${{ matrix.app }}-windows
+          name: elyzian-${{ matrix.app }}-${{ matrix.target.arch }}
           path: |
-            apps/${{ matrix.app }}/src-tauri/target/release/bundle/nsis/*.exe
-            apps/${{ matrix.app }}/src-tauri/target/release/bundle/msi/*.msi
+            apps/${{ matrix.app }}/src-tauri/target/${{ matrix.target.triple }}/release/bundle/nsis/*.exe
+            apps/${{ matrix.app }}/src-tauri/target/${{ matrix.target.triple }}/release/bundle/msi/*.msi
           if-no-files-found: error

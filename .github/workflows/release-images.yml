@@ -1,0 +1,62 @@
+name: Publish images
+
+# Builds and pushes the api + web images to GitHub Container Registry (GHCR),
+# so the Enterprise Installer can `docker compose pull` them onto a server with
+# no source checkout. Runs on a version tag or on demand.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag (defaults to "latest")'
+        required: false
+        default: latest
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            dockerfile: apps/api/Dockerfile
+          - name: web
+            dockerfile: apps/web/Dockerfile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ghcr requires a lowercase owner in the image path.
+      - id: meta
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          tag="${{ github.event.inputs.tag }}"
+          if [ -z "$tag" ]; then tag="${GITHUB_REF_NAME}"; fi
+          echo "image=ghcr.io/${owner}/elyzian-${{ matrix.name }}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag:-latest}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

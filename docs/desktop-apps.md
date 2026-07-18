@@ -6,96 +6,123 @@ hundreds), branded with the Elyzian asphodel:
 
 | App | Workspace | For | What it does |
 |---|---|---|---|
-| **Elyzian** (client) | `apps/desktop` | Every user | A native window onto the Elyzian web app. |
-| **Elyzian Enterprise Installer** | `apps/enterprise-installer` | IT / the stack owner | A wizard that collects all credentials and **deploys the whole stack** to the server. |
+| **Elyzian** (client) | `apps/desktop` | Every user | A native window onto the Elyzian web app; auto-updates itself. |
+| **Elyzian Enterprise Installer** | `apps/enterprise-installer` | IT / the stack owner | A wizard that collects all credentials, **downloads the app images, and deploys the whole stack** to the server. |
 
-Neither binary can be produced on Linux/CI-Ubuntu — building `.exe`/`.msi`
-needs a Windows toolchain and (for distribution) code signing. The
-[`desktop-build.yml`](../.github/workflows/desktop-build.yml) workflow builds
-both on a `windows-latest` runner; the normal CI builds only the frontends.
+## Platforms
+
+Native installers are built for **Windows 10+** on **x64, x86 (32-bit), and
+ARM64** (`desktop-build.yml`, a `windows-latest` matrix). The binaries can't be
+produced on Linux/CI-Ubuntu — they need a Windows toolchain — so the normal CI
+(`ci.yml`) builds only the frontends.
+
+**Windows 7 is intentionally not a target.** Tauri v2, the WebView2 runtime, and
+modern Rust all require Windows 10+ (Microsoft ended WebView2 support for Win7
+in October 2024). Windows 7 machines use Elyzian through a **browser** instead —
+the client is only a wrapper around the hosted web app, so a Win7 user opens
+`https://chat.yourcity.gov.br` in Firefox ESR (still Win7-compatible) and gets
+the full experience with no native install.
 
 ---
 
 ## Elyzian client (`apps/desktop`)
 
 A thin shell. Its bundled frontend is a first-run **connect screen** — the user
-types their Elyzian server address (`chat.yourcity.gov.br`) and the WebView
-navigates to the server's hosted web app. The address is remembered, so later
-launches reconnect automatically (with a "Change server" escape). Nothing about
-a deployment is baked into the binary, so **one build serves every city**.
+types their Elyzian server address and the WebView navigates to the server's
+hosted web app. The address is remembered, so later launches reconnect
+automatically (with a "Change server" escape). **One build serves every city.**
 
 ```sh
 npm run tauri:dev   -w @elyzian/desktop     # run locally
 npm run tauri:build -w @elyzian/desktop     # produce installers
 ```
 
-Output: `apps/desktop/src-tauri/target/release/bundle/{nsis,msi}/`.
+### Auto-update
+
+The client checks a GitHub Release on launch and offers a one-click "Update &
+restart" when a newer **signed** build is published (Tauri updater + process
+plugins; `useUpdate.ts`).
+
+Two pieces make it live:
+
+1. **A signing keypair.** Generate one and keep the private key secret:
+   ```sh
+   npm run tauri -w @elyzian/desktop -- signer generate -w elyzian-updater.key
+   ```
+   Put the **public** key in `apps/desktop/src-tauri/tauri.conf.json`
+   (`plugins.updater.pubkey`) — replace the placeholder committed there — and add
+   two repo secrets: `TAURI_SIGNING_PRIVATE_KEY` (the private key) and
+   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+2. **Signed releases.** Push a `client-v*` tag; `release-desktop.yml` builds
+   signed updater artifacts and publishes them (plus `latest.json`) to a GitHub
+   Release, which the updater endpoint reads.
+
+`createUpdaterArtifacts` is **off** in the committed config, so the ordinary
+`desktop-build.yml` still builds without any secrets; the release workflow flips
+it on where the key is present.
 
 ## Elyzian Enterprise Installer (`apps/enterprise-installer`)
 
-A guided, seven-step wizard (see `src/App.tsx`) that mirrors `.env.example`:
+A guided, seven-step wizard (`src/App.tsx`) mirroring `.env.example`:
 
-1. **Preflight** — checks Docker Engine, the daemon, Compose v2, and that it can
-   find the stack (`docker/docker-compose.yml`).
+1. **Preflight** — checks Docker Engine, the daemon, and Compose v2, with a
+   **"Get Docker Desktop"** helper if it's missing, and confirms the stack files
+   shipped inside the installer.
 2. **Database & cache** — Postgres + Redis (password generated).
 3. **Object storage** — MinIO (password generated).
 4. **Directory** — LDAP / Active Directory: URL, service-account bind DN +
    password, base DN, search bases, and the AD-vs-OpenLDAP attribute names.
-5. **Integrations** — GLPI (ticketing) and Tactical RMM (monitoring) tokens +
-   webhook secrets; optional.
-6. **Networking & TLS** — the Caddy edge toggle, domains, and ACME email for
-   automatic Let's Encrypt certificates.
-7. **Review & Deploy** — shows the generated `.env` (secrets masked), writes it,
-   then runs Docker Compose and streams the logs live, finishing with an API
-   health check.
+5. **Integrations** — GLPI + Tactical RMM tokens/webhook secrets; optional.
+6. **Networking & TLS** — the Caddy edge toggle, domains, and ACME email.
+7. **Review & Deploy** — shows the generated `.env` (secrets masked), then
+   **downloads the images and starts the stack**, streaming the logs live and
+   finishing with an API `/health` check.
 
-All secrets are generated with the WebView's Web Crypto and never leave the
-machine. The `.env`-generation logic is pure TypeScript and unit-tested
-(`src/lib/config.test.ts`).
+Secrets are generated with Web Crypto and never leave the machine. The
+`.env`-generation logic is pure TypeScript and unit-tested (`src/lib/config.test.ts`).
 
-### Native commands
+### How "download everything" works
 
-The Rust backend (`src-tauri/src/lib.rs`) exposes four commands:
+The installer **bundles the small `docker/` compose tree** (compose files,
+Caddyfile, LDAP seeds) as a Tauri resource — no app source. At deploy it:
 
-- `preflight` — is Docker present, running, and is the stack here?
-- `write_env_file` — persist the generated `.env` beside the compose files.
-- `deploy_stack` — `docker compose … up -d --build`, streaming output to the UI
-  via the `deploy-log` event (edge overlay added when TLS is enabled).
-- `stack_health` — probe the API's `/health` endpoint.
+1. copies that tree to a writable working directory and writes `.env` beside it;
+2. runs `docker compose -f docker/docker-compose.images.yml … pull` — which
+   **downloads the prebuilt `api`/`web` images** from the registry;
+3. runs `… up -d` (adding `docker-compose.edge.yml` when TLS is enabled).
 
-### Deployment model (v1)
+The images come from **GHCR**, published by `release-images.yml` (on a `v*` tag
+or on demand) to `ghcr.io/<owner>/elyzian-{api,web}`. The registry and tag are
+in `.env` (`ELYZIAN_REGISTRY`, `ELYZIAN_IMAGE_TAG`). The **web image reads its
+API/WS origins at runtime** (`/config.js`, written by the container from
+`VITE_API_URL`/`VITE_WS_URL`), so one prebuilt image serves any deployment.
 
-The installer runs **inside the Elyzian server release directory** — the folder
-containing `docker/`, `apps/`, and the Dockerfiles. Ship the installer together
-with a checkout/release of the repo; the IT team runs it there, and Compose
-builds the API/web images from that source on first boot. Requirements on the
-server:
+Native commands (`src-tauri/src/lib.rs`): `preflight`, `open_url` (the Docker
+helper), `deploy_stack` (stage → pull → up, streaming via the `deploy-log`
+event), and `stack_health`.
 
-- **Docker Desktop / Engine** (Linux containers) with Compose v2.
-- Ports open per your config; for the TLS edge, `80`/`443` and DNS for both
-  domains pointing at the host.
+Requirements on the server: **Docker Desktop / Engine** (Linux containers) with
+Compose v2; ports per your config, and for the TLS edge, `80`/`443` open with
+DNS for both domains pointing at the host.
 
 ```sh
 npm run tauri:dev   -w @elyzian/enterprise-installer
 npm run tauri:build -w @elyzian/enterprise-installer
 ```
 
-> **Follow-up (not in v1):** publishing pre-built `api`/`web` images to a
-> registry and shipping an images-only compose file would let the installer
-> deploy without the source tree present (a smaller, faster download). The
-> registry choice is deferred, matching the note in `ci.yml`.
-
 ---
 
-## Building both locally (on Windows)
+## Building locally (on Windows)
 
 ```sh
 npm ci
 rustup toolchain install stable
-npm run tauri:build -w @elyzian/desktop
-npm run tauri:build -w @elyzian/enterprise-installer
+rustup target add i686-pc-windows-msvc aarch64-pc-windows-msvc   # for x86 / ARM64
+npm run tauri:build -w @elyzian/desktop            -- --target x86_64-pc-windows-msvc
+npm run tauri:build -w @elyzian/enterprise-installer -- --target x86_64-pc-windows-msvc
 ```
 
 Signing: set up a code-signing certificate and Tauri's
 [`bundle.windows.certificateThumbprint`](https://tauri.app/distribute/sign/windows/)
-before distributing, so Windows SmartScreen doesn't warn users.
+before distributing, so Windows SmartScreen doesn't warn users. (This is
+separate from the updater signing key above.)
