@@ -1,0 +1,37 @@
+{
+  "name": "@elyzian/enterprise-installer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.9",
+    "@tauri-apps/api": "^2.1.1",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@tauri-apps/cli": "^2.1.0",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@vitejs/plugin-react": "^6.0.3",
+    "eslint": "^9",
+    "globals": "^14.0.0",
+    "typescript": "~5.9",
+    "typescript-eslint": "^8",
+    "vite": "^8.1.1",
+    "vitest": "^4"
+  }
+}

@@ -1,0 +1,62 @@
+/* Elyzian desktop — first-run connect screen. Classical marble/basalt/gold. */
+:root {
+  --ink: #191d23;
+  --paper: #f4f5f1;
+  --surface: #ffffff;
+  --line: #d4d7cf;
+  --muted: #6a7167;
+  --gold: #a6822f;
+  --gold-soft: #c6a659;
+  --sky: #3a4d8a;
+  --danger: #b4443a;
+  --text: var(--ink);
+  --font: 'Geist Variable', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #12151a;
+    --surface: #191d23;
+    --line: #2b313a;
+    --muted: #9aa196;
+    --text: #e6e8e3;
+    --sky: #8092c8;
+  }
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: var(--font); background: var(--paper); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+.shell { position: relative; height: 100%; display: grid; place-items: center; overflow: hidden; }
+
+.aperture { position: absolute; width: 42rem; height: 42rem; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.aperture span { position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--line); }
+.aperture span:last-child { inset: 16%; opacity: 0.6; }
+
+.card { position: relative; z-index: 1; width: 340px; text-align: center; padding: 8px; }
+.logo { width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 16px; background: var(--ink); display: grid; place-items: center; }
+.logo .mark { width: 32px; height: 32px; color: var(--gold-soft); }
+.card h1 { font-size: 1.7rem; letter-spacing: -0.02em; margin: 0; }
+.card .sub { font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 6px 0 26px; }
+
+form { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+label { font-size: 0.8rem; font-weight: 500; }
+input {
+  font-family: inherit; font-size: 0.92rem; color: var(--text);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; outline: none;
+}
+input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgb(166 130 47 / 0.18); }
+.hint { font-size: 0.74rem; color: var(--muted); margin: 2px 0 4px; }
+.err { font-size: 0.74rem; color: var(--danger); margin: 2px 0 4px; }
+
+.btn-primary { font-family: inherit; font-size: 0.9rem; font-weight: 500; background: var(--sky); color: #fff; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+.btn-primary:hover { filter: brightness(1.06); }
+.btn-primary.block { width: 100%; margin-top: 6px; }
+.btn-ghost { font-family: inherit; font-size: 0.9rem; background: transparent; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+.btn-ghost:hover { border-color: var(--muted); }
+
+.auto { display: flex; flex-direction: column; gap: 16px; }
+.auto p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.auto strong { color: var(--text); font-weight: 500; }
+.auto-actions { display: flex; gap: 8px; justify-content: center; }
+
+footer { position: absolute; bottom: 16px; font-size: 0.72rem; color: var(--muted); }

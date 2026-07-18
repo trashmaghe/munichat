@@ -1,0 +1,47 @@
+name: Build desktop apps
+
+# Produces the Windows installers for both the regular client (@elyzian/desktop)
+# and the enterprise installer (@elyzian/enterprise-installer). Runs on demand
+# or when a desktop release tag is pushed. The Rust/Tauri toolchain only exists
+# on this Windows job — the normal CI (ci.yml) builds the frontends only.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'desktop-v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [desktop, enterprise-installer]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/${{ matrix.app }}/src-tauri
+
+      - run: npm ci
+
+      # Builds the frontend (beforeBuildCommand) then compiles + bundles the
+      # native app into NSIS + MSI installers.
+      - run: npm run tauri:build -w @elyzian/${{ matrix.app }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elyzian-${{ matrix.app }}-windows
+          path: |
+            apps/${{ matrix.app }}/src-tauri/target/release/bundle/nsis/*.exe
+            apps/${{ matrix.app }}/src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error
