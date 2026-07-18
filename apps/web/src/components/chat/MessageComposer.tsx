@@ -175,7 +175,7 @@ export function MessageComposer({
       )}
 
       {!editTarget && replyTarget && (
-        <div className="flex items-center justify-between rounded-md border-l-2 border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between rounded-md border-l-2 border-gold/60 bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
           <span>
             Replying to <span className="font-medium">{replyTarget.author.displayName}</span>
           </span>

@@ -71,7 +71,12 @@ function ChannelPageBody({ channelId }: { channelId: string }) {
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b px-4 py-3">
-        <h1 className="text-sm font-medium">{channel?.displayName ?? 'Channel'}</h1>
+        <h1 className="flex items-baseline gap-1.5 text-sm font-medium">
+          <span className="text-base leading-none font-normal text-gold" aria-hidden>
+            #
+          </span>
+          {channel?.displayName ?? 'Channel'}
+        </h1>
         <div className="flex items-center gap-3">
           {isRmmChannel && <RmmAgentsPanel canRemoteControl={isRmmAdmin} />}
           <PresenceCluster channelId={channelId} />

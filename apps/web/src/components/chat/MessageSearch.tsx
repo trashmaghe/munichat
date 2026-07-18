@@ -23,7 +23,7 @@ function highlightTerm(text: string, term: string): ReactNode {
   const parts = text.split(new RegExp(`(${escaped})`, 'ig'));
   return parts.map((part, index) =>
     part.toLowerCase() === trimmed.toLowerCase() ? (
-      <mark key={index} className="rounded-sm bg-yellow-200 px-0.5 dark:bg-yellow-900/60">
+      <mark key={index} className="rounded-sm bg-gold/25 px-0.5 text-foreground">
         {part}
       </mark>
     ) : (

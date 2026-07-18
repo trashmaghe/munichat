@@ -103,7 +103,7 @@ export function MessageItem({
 
       <div className={cn('flex min-w-0 flex-1 flex-col gap-0.5', isOwn && 'items-end')}>
         {message.replyTo && (
-          <div className="max-w-prose rounded-md border-l-2 border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
+          <div className="max-w-prose rounded-md border-l-2 border-gold/60 bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
             {message.replyTo.deleted ? (
               <span className="italic">Original message was deleted</span>
             ) : (
