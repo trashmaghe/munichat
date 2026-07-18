@@ -15,8 +15,8 @@ export default defineConfig({
         name: 'Elyzian',
         short_name: 'Elyzian',
         description: 'Real-time municipal chat platform — Prefeitura Municipal de Nova Serrana',
-        theme_color: '#171717',
-        background_color: '#171717',
+        theme_color: '#191d23',
+        background_color: '#191d23',
         display: 'standalone',
         start_url: '/',
         icons: [
