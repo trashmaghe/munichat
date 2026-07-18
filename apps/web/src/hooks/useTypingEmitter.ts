@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { SocketEvent } from '@munichat/shared';
+import { SocketEvent } from '@elyzian/shared';
 import { getSocket } from '@/lib/socket';
 
 const TYPING_STOP_DELAY_MS = 2000;

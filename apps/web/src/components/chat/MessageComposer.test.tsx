@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SocketEvent } from '@munichat/shared';
+import { SocketEvent } from '@elyzian/shared';
 import { createMockSocket, getMockSocket, setMockSocket } from '@/test/socket-mock';
 
 vi.mock('socket.io-client', () => ({

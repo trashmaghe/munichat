@@ -2,7 +2,7 @@ import { BadGatewayException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
-import { SocketEvent } from '@munichat/shared';
+import { SocketEvent } from '@elyzian/shared';
 import { RmmWebhookController } from './rmm-webhook.controller';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';

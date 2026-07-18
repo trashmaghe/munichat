@@ -37,8 +37,8 @@ jobs:
       openldap:
         image: osixia/openldap:1.5.0
         env:
-          LDAP_ORGANISATION: MuniChat
-          LDAP_DOMAIN: munichat.local
+          LDAP_ORGANISATION: Elyzian
+          LDAP_DOMAIN: elyzian.local
           LDAP_ADMIN_PASSWORD: test
           LDAP_CONFIG_PASSWORD: test
           LDAP_TLS: "false"
@@ -57,13 +57,13 @@ jobs:
       DATABASE_URL: postgresql://test:test@localhost:5432/test
       REDIS_URL: redis://localhost:6379
       LDAP_URL: ldap://localhost:1389
-      LDAP_BIND_DN: cn=admin,dc=munichat,dc=local
+      LDAP_BIND_DN: cn=admin,dc=elyzian,dc=local
       LDAP_BIND_PASSWORD: test
       LDAP_ADMIN_PASSWORD: test
       LDAP_CONFIG_PASSWORD: test
-      LDAP_BASE_DN: dc=munichat,dc=local
-      LDAP_USER_SEARCH_BASE: ou=people,dc=munichat,dc=local
-      LDAP_GROUP_SEARCH_BASE: ou=groups,dc=munichat,dc=local
+      LDAP_BASE_DN: dc=elyzian,dc=local
+      LDAP_USER_SEARCH_BASE: ou=people,dc=elyzian,dc=local
+      LDAP_GROUP_SEARCH_BASE: ou=groups,dc=elyzian,dc=local
       LDAP_USERNAME_ATTRIBUTE: uid
       LDAP_UNIQUE_ID_ATTRIBUTE: entryUUID
       JWT_ACCESS_SECRET: test-access-secret
@@ -76,7 +76,7 @@ jobs:
       MINIO_USE_SSL: "false"
       MINIO_ROOT_USER: test_minio_admin
       MINIO_ROOT_PASSWORD: test_minio_password
-      MINIO_BUCKET: munichat-files
+      MINIO_BUCKET: elyzian-files
       GLPI_URL: http://localhost:8080
       GLPI_APP_TOKEN: test-glpi-app-token
       GLPI_USER_TOKEN: test-glpi-user-token
@@ -164,8 +164,8 @@ jobs:
       # no push, no registry (registry choice is a follow-up decision, not
       # made here). Dev-safe ARG defaults are enough for a correctness check;
       # these tags aren't deployable artifacts.
-      - run: docker build -f apps/api/Dockerfile -t munichat-api:ci .
+      - run: docker build -f apps/api/Dockerfile -t elyzian-api:ci .
 
-      - run: docker build -f apps/api/Dockerfile --target build -t munichat-api:ci-migrator .
+      - run: docker build -f apps/api/Dockerfile --target build -t elyzian-api:ci-migrator .
 
-      - run: docker build -f apps/web/Dockerfile -t munichat-web:ci .
+      - run: docker build -f apps/web/Dockerfile -t elyzian-web:ci .

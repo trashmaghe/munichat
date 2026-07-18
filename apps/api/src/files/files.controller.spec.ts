@@ -115,6 +115,9 @@ describe('FilesController — download', () => {
     await controller.download(user, 'a1', fakeReq(), res);
 
     expect(res.__headers['Accept-Ranges']).toBe('bytes');
+    expect(res.__headers['Cache-Control']).toBe(
+      'private, max-age=31536000, immutable',
+    );
     expect(res.status).not.toHaveBeenCalledWith(206);
     expect(filesService.streamObject).toHaveBeenCalledWith(
       attachment.objectKey,

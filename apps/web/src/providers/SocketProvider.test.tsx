@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SocketEvent } from '@munichat/shared';
+import { SocketEvent } from '@elyzian/shared';
 import { createMockSocket, getMockSocket, setMockSocket } from '@/test/socket-mock';
 
 vi.mock('socket.io-client', () => ({

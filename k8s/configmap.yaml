@@ -3,8 +3,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: munichat-config
-  namespace: munichat
+  name: elyzian-config
+  namespace: elyzian
 data:
   NODE_ENV: "production"
   PORT: "3000"
@@ -16,7 +16,7 @@ data:
   MINIO_ENDPOINT: "REPLACE_ME"
   MINIO_PORT: "9000"
   MINIO_USE_SSL: "true"
-  MINIO_BUCKET: "munichat-files"
+  MINIO_BUCKET: "elyzian-files"
 
   GLPI_URL: "https://REPLACE_ME"
   GLPI_WEBHOOK_TICKET_ID_FIELD: "id"

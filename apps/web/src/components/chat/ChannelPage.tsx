@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { Message } from '@munichat/shared';
+import type { Message } from '@elyzian/shared';
 import { useChannels } from '@/hooks/useChannels';
 import { useChannelMembers } from '@/hooks/useChannelMembers';
 import { useCurrentUser } from '@/hooks/useCurrentUser';

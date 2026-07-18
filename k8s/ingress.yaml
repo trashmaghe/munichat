@@ -11,8 +11,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: munichat-web
-  namespace: munichat
+  name: elyzian-web
+  namespace: elyzian
 spec:
   ingressClassName: nginx
   rules:
@@ -23,15 +23,15 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: munichat-web
+                name: elyzian-web
                 port:
                   number: 80
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: munichat-api
-  namespace: munichat
+  name: elyzian-api
+  namespace: elyzian
   annotations:
     # WebSocket upgrade needs no special annotation - ingress-nginx handles
     # it by default. Default 60s proxy timeouts are close enough to
@@ -47,7 +47,7 @@ metadata:
     # several sequential HTTP requests, which must all land on the same pod.
     nginx.ingress.kubernetes.io/affinity: "cookie"
     nginx.ingress.kubernetes.io/affinity-mode: "persistent"
-    nginx.ingress.kubernetes.io/session-cookie-name: "MUNICHAT_INGRESS_AFFINITY"
+    nginx.ingress.kubernetes.io/session-cookie-name: "ELYZIAN_INGRESS_AFFINITY"
 spec:
   ingressClassName: nginx
   rules:
@@ -58,6 +58,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: munichat-api
+                name: elyzian-api
                 port:
                   number: 3000

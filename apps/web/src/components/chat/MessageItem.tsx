@@ -1,15 +1,35 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { format } from 'date-fns';
 import { Download, ExternalLink, Pencil, Reply, Smile, Trash2 } from 'lucide-react';
-import type { Message } from '@munichat/shared';
+import type { Message } from '@elyzian/shared';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserAvatar } from '@/components/chat/UserAvatar';
 import { Reactions } from '@/components/chat/Reactions';
-import { PdfAttachmentCard } from '@/components/chat/PdfAttachmentCard';
-import { VideoAttachment } from '@/components/chat/VideoAttachment';
-import { AudioAttachment } from '@/components/chat/AudioAttachment';
+
+// The PDF and media players (and the code they pull in) are only needed when a
+// message actually carries that attachment type, which is the exception, not
+// the rule — so they're code-split out of the initial bundle and loaded on
+// demand.
+const PdfAttachmentCard = lazy(() =>
+  import('@/components/chat/PdfAttachmentCard').then((m) => ({ default: m.PdfAttachmentCard })),
+);
+const VideoAttachment = lazy(() =>
+  import('@/components/chat/VideoAttachment').then((m) => ({ default: m.VideoAttachment })),
+);
+const AudioAttachment = lazy(() =>
+  import('@/components/chat/AudioAttachment').then((m) => ({ default: m.AudioAttachment })),
+);
+
+function AttachmentFallback({ fileName }: { fileName: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-sm text-muted-foreground">
+      <span className="size-4 shrink-0 animate-pulse rounded-full bg-muted" />
+      <span className="truncate">{fileName}</span>
+    </div>
+  );
+}
 import {
   AlertDialog,
   AlertDialogAction,
@@ -144,24 +164,27 @@ export function MessageItem({
                   />
                 </a>
               ) : attachment.mimeType === 'application/pdf' ? (
-                <PdfAttachmentCard
-                  key={attachment.id}
-                  url={attachmentUrl(attachment.id)}
-                  fileName={attachment.fileName}
-                />
+                <Suspense key={attachment.id} fallback={<AttachmentFallback fileName={attachment.fileName} />}>
+                  <PdfAttachmentCard
+                    url={attachmentUrl(attachment.id)}
+                    fileName={attachment.fileName}
+                  />
+                </Suspense>
               ) : attachment.mimeType.startsWith('video/') ? (
-                <VideoAttachment
-                  key={attachment.id}
-                  url={attachmentUrl(attachment.id)}
-                  fileName={attachment.fileName}
-                />
+                <Suspense key={attachment.id} fallback={<AttachmentFallback fileName={attachment.fileName} />}>
+                  <VideoAttachment
+                    url={attachmentUrl(attachment.id)}
+                    fileName={attachment.fileName}
+                  />
+                </Suspense>
               ) : attachment.mimeType.startsWith('audio/') ? (
-                <AudioAttachment
-                  key={attachment.id}
-                  url={attachmentUrl(attachment.id)}
-                  fileName={attachment.fileName}
-                  sizeBytes={attachment.sizeBytes}
-                />
+                <Suspense key={attachment.id} fallback={<AttachmentFallback fileName={attachment.fileName} />}>
+                  <AudioAttachment
+                    url={attachmentUrl(attachment.id)}
+                    fileName={attachment.fileName}
+                    sizeBytes={attachment.sizeBytes}
+                  />
+                </Suspense>
               ) : (
                 <a
                   key={attachment.id}

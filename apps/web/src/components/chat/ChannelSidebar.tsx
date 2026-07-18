@@ -10,7 +10,7 @@ export function ChannelSidebar() {
   return (
     <aside data-slot="channel-sidebar" className="flex w-64 shrink-0 flex-col border-r bg-card">
       <div className="border-b px-3 py-3">
-        <p className="text-sm font-medium">MuniChat</p>
+        <p className="text-sm font-medium">Elyzian</p>
       </div>
       <MessageSearch />
       <nav className="flex-1 overflow-y-auto p-2">

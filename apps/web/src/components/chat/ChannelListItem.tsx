@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import type { ChannelSummary } from '@munichat/shared';
+import type { ChannelSummary } from '@elyzian/shared';
 import { cn } from '@/lib/utils';
 
 export function ChannelListItem({ channel }: { channel: ChannelSummary }) {

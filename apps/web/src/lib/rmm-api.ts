@@ -4,7 +4,7 @@ import {
   rmmRemoteControlUrlsSchema,
   type RmmAgentSummary,
   type RmmRemoteControlUrls,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { apiFetch } from '@/lib/api-client';
 
 export async function fetchRmmAgents(): Promise<RmmAgentSummary[]> {

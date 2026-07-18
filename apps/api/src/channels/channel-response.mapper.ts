@@ -1,5 +1,5 @@
 import { Channel, ChannelMember, User } from '@prisma/client';
-import { ChannelMemberSummary, ChannelSummary } from '@munichat/shared';
+import { ChannelMemberSummary, ChannelSummary } from '@elyzian/shared';
 import { toUserSummary } from '../users/user-summary.mapper';
 
 export function toChannelSummary(

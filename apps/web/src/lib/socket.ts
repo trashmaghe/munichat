@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import { SocketEvent, type Message, type PendingAttachment } from '@munichat/shared';
+import { SocketEvent, type Message, type PendingAttachment } from '@elyzian/shared';
 
 let socket: Socket | null = null;
 

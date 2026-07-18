@@ -1,5 +1,5 @@
 {
-  "name": "@munichat/api",
+  "name": "@elyzian/api",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -29,7 +29,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1085.0",
     "@aws-sdk/s3-request-presigner": "^3.1085.0",
-    "@munichat/shared": "*",
+    "@elyzian/shared": "*",
     "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",

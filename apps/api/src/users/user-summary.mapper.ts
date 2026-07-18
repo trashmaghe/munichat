@@ -1,5 +1,5 @@
 import { User } from '@prisma/client';
-import { UserSummary } from '@munichat/shared';
+import { UserSummary } from '@elyzian/shared';
 
 export function toUserSummary(user: User): UserSummary {
   return {

@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
-import type { LoginResponse } from '@munichat/shared';
+import type { LoginResponse } from '@elyzian/shared';
 import { AuthService, TokenPair } from './auth.service';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';

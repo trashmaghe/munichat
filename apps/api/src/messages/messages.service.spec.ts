@@ -413,7 +413,7 @@ describe('MessagesService', () => {
       expect(glpiService.createTicket).toHaveBeenCalledWith({
         title: 'printer on 3rd floor is jammed',
         content: 'printer on 3rd floor is jammed',
-        requesterLabel: 'Reported via MuniChat by Joao Silva (jsilva)',
+        requesterLabel: 'Reported via Elyzian by Joao Silva (jsilva)',
       });
       expect(prisma.message.create).toHaveBeenCalledWith({
         data: {

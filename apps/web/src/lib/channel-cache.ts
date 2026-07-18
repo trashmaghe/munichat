@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { ChannelSummary } from '@munichat/shared';
+import type { ChannelSummary } from '@elyzian/shared';
 
 function patchUnreadCount(
   queryClient: QueryClient,

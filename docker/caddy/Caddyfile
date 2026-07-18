@@ -1,0 +1,44 @@
+# Elyzian edge — Caddy reverse proxy with automatic HTTPS.
+#
+# Caddy obtains and auto-renews trusted Let's Encrypt certificates for the two
+# domains below (they must resolve to this host, with ports 80 + 443 reachable).
+# HTTP/2 and HTTP/3 are automatic; compression and security headers are added
+# here. Local/dev keeps talking to the app directly and never touches this file.
+
+{
+	email {$ACME_EMAIL}
+}
+
+# ---- Web app (static SPA) --------------------------------------------------
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Vite content-hashes files under /assets, so they're safe to cache forever.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	reverse_proxy web:80
+}
+
+# ---- API + WebSocket -------------------------------------------------------
+# Caddy upgrades the socket.io / WebSocket connection transparently, so realtime
+# chat works through the proxy with no extra config.
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	reverse_proxy api:{$PORT}
+}

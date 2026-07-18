@@ -15,7 +15,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import type { User } from '@prisma/client';
-import type { PresignUploadResponse } from '@munichat/shared';
+import type { PresignUploadResponse } from '@elyzian/shared';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChannelsService } from '../channels/channels.service';
@@ -103,6 +103,10 @@ export class FilesController {
     const total = attachment.sizeBytes;
     // Advertise range support so media elements can seek.
     res.setHeader('Accept-Ranges', 'bytes');
+    // An attachment's object key is unique per upload, so its bytes never
+    // change — cache aggressively (privately, since access is auth-gated) so
+    // images, PDFs, and media aren't re-fetched on re-render, replay, or seek.
+    res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
 
     const range = parseByteRange(req.headers['range'], total);
     if (range === 'unsatisfiable') {

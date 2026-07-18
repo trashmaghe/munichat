@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { HealthCheckService, PrismaHealthIndicator } from '@nestjs/terminus';
-import { HealthResponse } from '@munichat/shared';
+import { HealthResponse } from '@elyzian/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('health')

@@ -9,7 +9,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
-import { SocketEvent } from '@munichat/shared';
+import { SocketEvent } from '@elyzian/shared';
 import { GlpiWebhookController } from './glpi-webhook.controller';
 import { GlpiService, GlpiUnavailableError } from './glpi.service';
 import { PrismaService } from '../prisma/prisma.service';

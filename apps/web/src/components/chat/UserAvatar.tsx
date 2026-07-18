@@ -1,4 +1,4 @@
-import type { UserSummary } from '@munichat/shared';
+import type { UserSummary } from '@elyzian/shared';
 import { cn } from '@/lib/utils';
 
 function getInitials(displayName: string): string {

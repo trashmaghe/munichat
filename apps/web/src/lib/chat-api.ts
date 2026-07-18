@@ -8,7 +8,7 @@ import {
   type ChannelSummary,
   type MessageHistoryResponse,
   type MessageSearchResponse,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { apiFetch } from '@/lib/api-client';
 
 export async function fetchChannels(): Promise<ChannelSummary[]> {

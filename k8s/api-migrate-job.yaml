@@ -4,13 +4,13 @@
 # (`docker build --target build`), since that's the only stage with the
 # prisma CLI on it.
 #
-# Job names are immutable: `kubectl delete job munichat-api-migrate -n
-# munichat` before re-applying this for a subsequent release.
+# Job names are immutable: `kubectl delete job elyzian-api-migrate -n
+# elyzian` before re-applying this for a subsequent release.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: munichat-api-migrate
-  namespace: munichat
+  name: elyzian-api-migrate
+  namespace: elyzian
 spec:
   backoffLimit: 2
   template:
@@ -18,7 +18,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrate
-          image: <REPLACE_WITH_REGISTRY>/munichat-api:<REPLACE_WITH_TAG>-migrator
+          image: <REPLACE_WITH_REGISTRY>/elyzian-api:<REPLACE_WITH_TAG>-migrator
           command:
             - node_modules/.bin/prisma
             - migrate
@@ -27,6 +27,6 @@ spec:
             - apps/api/prisma/schema.prisma
           envFrom:
             - configMapRef:
-                name: munichat-config
+                name: elyzian-config
             - secretRef:
-                name: munichat-secret
+                name: elyzian-secret

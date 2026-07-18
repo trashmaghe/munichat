@@ -1,5 +1,5 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
-import type { Message, MessageHistoryResponse } from '@munichat/shared';
+import type { Message, MessageHistoryResponse } from '@elyzian/shared';
 
 // useChannelMessages pages are ordered newest-fetched-first (pages[0] is the
 // most recent window, ascending oldest->newest within it); a live message

@@ -33,7 +33,7 @@ export function InstallPrompt() {
       data-slot="install-prompt"
       className="flex items-center justify-between gap-2 border-t bg-muted/50 px-3 py-2"
     >
-      <span className="text-xs text-muted-foreground">Install MuniChat for quicker access</span>
+      <span className="text-xs text-muted-foreground">Install Elyzian for quicker access</span>
       <Button size="sm" variant="outline" onClick={() => void handleInstall()}>
         Install
       </Button>

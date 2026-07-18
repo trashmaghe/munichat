@@ -17,9 +17,9 @@ describe('LdapService', () => {
 
   const config: Record<string, string> = {
     LDAP_URL: 'ldap://localhost:1389',
-    LDAP_BIND_DN: 'cn=admin,dc=munichat,dc=local',
+    LDAP_BIND_DN: 'cn=admin,dc=elyzian,dc=local',
     LDAP_BIND_PASSWORD: 'admin-pass',
-    LDAP_USER_SEARCH_BASE: 'ou=people,dc=munichat,dc=local',
+    LDAP_USER_SEARCH_BASE: 'ou=people,dc=elyzian,dc=local',
     LDAP_USERNAME_ATTRIBUTE: 'uid',
     LDAP_UNIQUE_ID_ATTRIBUTE: 'entryUUID',
   };
@@ -45,13 +45,13 @@ describe('LdapService', () => {
       mockClientInstance.search.mockResolvedValue({
         searchEntries: [
           {
-            dn: 'uid=jsilva,ou=people,dc=munichat,dc=local',
+            dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
             uid: 'jsilva',
             entryUUID: 'uuid-1',
             displayName: 'Joao Silva',
-            mail: 'jsilva@munichat.local',
+            mail: 'jsilva@elyzian.local',
             departmentNumber: 'TI',
-            memberOf: 'cn=ti,ou=groups,dc=munichat,dc=local',
+            memberOf: 'cn=ti,ou=groups,dc=elyzian,dc=local',
           },
         ],
       });
@@ -59,17 +59,17 @@ describe('LdapService', () => {
       const result = await service.findUserByUsername('jsilva');
 
       expect(mockClientInstance.bind).toHaveBeenCalledWith(
-        'cn=admin,dc=munichat,dc=local',
+        'cn=admin,dc=elyzian,dc=local',
         'admin-pass',
       );
       expect(result).toEqual({
-        dn: 'uid=jsilva,ou=people,dc=munichat,dc=local',
+        dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
         uniqueId: 'uuid-1',
         username: 'jsilva',
         displayName: 'Joao Silva',
-        email: 'jsilva@munichat.local',
+        email: 'jsilva@elyzian.local',
         department: 'TI',
-        memberOf: ['cn=ti,ou=groups,dc=munichat,dc=local'],
+        memberOf: ['cn=ti,ou=groups,dc=elyzian,dc=local'],
       });
       expect(mockClientInstance.unbind).toHaveBeenCalled();
     });
@@ -78,13 +78,13 @@ describe('LdapService', () => {
       mockClientInstance.search.mockResolvedValue({
         searchEntries: [
           {
-            dn: 'uid=jsilva,ou=people,dc=munichat,dc=local',
+            dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
             uid: 'jsilva',
             entryUUID: 'uuid-1',
             displayName: 'Joao Silva',
             memberOf: [
-              'cn=ti,ou=groups,dc=munichat,dc=local',
-              'cn=financas,ou=groups,dc=munichat,dc=local',
+              'cn=ti,ou=groups,dc=elyzian,dc=local',
+              'cn=financas,ou=groups,dc=elyzian,dc=local',
             ],
           },
         ],
@@ -93,8 +93,8 @@ describe('LdapService', () => {
       const result = await service.findUserByUsername('jsilva');
 
       expect(result?.memberOf).toEqual([
-        'cn=ti,ou=groups,dc=munichat,dc=local',
-        'cn=financas,ou=groups,dc=munichat,dc=local',
+        'cn=ti,ou=groups,dc=elyzian,dc=local',
+        'cn=financas,ou=groups,dc=elyzian,dc=local',
       ]);
     });
 
@@ -102,7 +102,7 @@ describe('LdapService', () => {
       mockClientInstance.search.mockResolvedValue({
         searchEntries: [
           {
-            dn: 'uid=jsilva,ou=people,dc=munichat,dc=local',
+            dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
             uid: 'jsilva',
             entryUUID: 'uuid-1',
             displayName: 'Joao Silva',
@@ -141,7 +141,7 @@ describe('LdapService', () => {
       mockClientInstance.bind.mockResolvedValue(undefined);
 
       const result = await service.verifyCredentials(
-        'uid=jsilva,ou=people,dc=munichat,dc=local',
+        'uid=jsilva,ou=people,dc=elyzian,dc=local',
         'correct-pass',
       );
 
@@ -154,7 +154,7 @@ describe('LdapService', () => {
       );
 
       const result = await service.verifyCredentials(
-        'uid=jsilva,ou=people,dc=munichat,dc=local',
+        'uid=jsilva,ou=people,dc=elyzian,dc=local',
         'wrong-pass',
       );
 
@@ -164,7 +164,7 @@ describe('LdapService', () => {
 
     it('returns false without attempting a bind when the password is empty', async () => {
       const result = await service.verifyCredentials(
-        'uid=jsilva,ou=people,dc=munichat,dc=local',
+        'uid=jsilva,ou=people,dc=elyzian,dc=local',
         '',
       );
 

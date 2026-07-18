@@ -6,7 +6,7 @@ import {
   type PresenceSyncPayload,
   type PresenceUpdatePayload,
   type TypingBroadcast,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { getSocket } from '@/lib/socket';
 import { appendMessageToCache, updateMessageInCache } from '@/lib/message-cache';
 import { incrementUnreadCountInCache } from '@/lib/channel-cache';

@@ -54,7 +54,7 @@ COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 # generated directory.
 COPY --from=build --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build --chown=node:node /app/node_modules/@prisma/client ./node_modules/@prisma/client
-# The workspace symlink node_modules/@munichat/shared has no dist/ until this.
+# The workspace symlink node_modules/@elyzian/shared has no dist/ until this.
 COPY --from=build --chown=node:node /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build --chown=node:node /app/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=node:node /app/apps/api/prisma ./apps/api/prisma

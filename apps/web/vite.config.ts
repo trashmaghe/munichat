@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'MuniChat',
-        short_name: 'MuniChat',
+        name: 'Elyzian',
+        short_name: 'Elyzian',
         description: 'Real-time municipal chat platform — Prefeitura Municipal de Nova Serrana',
         theme_color: '#171717',
         background_color: '#171717',
@@ -45,7 +45,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['@munichat/shared'],
+    include: ['@elyzian/shared'],
   },
   test: {
     environment: 'jsdom',

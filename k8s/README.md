@@ -1,4 +1,4 @@
-# MuniChat — Kubernetes (app tier)
+# Elyzian — Kubernetes (app tier)
 
 **These manifests have never been applied to a real Kubernetes cluster.** No
 cluster was available while writing them. They're best-effort-correct against
@@ -8,7 +8,7 @@ they need review by someone with real cluster access — at minimum a
 
 ## Scope
 
-App tier only: `munichat-api` and `munichat-web`. Postgres, Redis, MinIO, and
+App tier only: `elyzian-api` and `elyzian-web`. Postgres, Redis, MinIO, and
 LDAP/Active Directory are assumed external/managed (RDS, ElastiCache, a
 managed MinIO/S3, real corporate AD, etc.) — there are no StatefulSets here.
 Point the ConfigMap/Secret at wherever those actually live.
@@ -41,16 +41,16 @@ Run from the repo root (both Dockerfiles expect the whole monorepo as their
 build context):
 
 ```sh
-docker build -f apps/api/Dockerfile -t <REGISTRY>/munichat-api:<TAG> .
-docker build -f apps/api/Dockerfile --target build -t <REGISTRY>/munichat-api:<TAG>-migrator .
+docker build -f apps/api/Dockerfile -t <REGISTRY>/elyzian-api:<TAG> .
+docker build -f apps/api/Dockerfile --target build -t <REGISTRY>/elyzian-api:<TAG>-migrator .
 docker build -f apps/web/Dockerfile \
   --build-arg VITE_API_URL=https://api.<yourdomain> \
   --build-arg VITE_WS_URL=wss://api.<yourdomain> \
-  -t <REGISTRY>/munichat-web:<TAG> .
+  -t <REGISTRY>/elyzian-web:<TAG> .
 
-docker push <REGISTRY>/munichat-api:<TAG>
-docker push <REGISTRY>/munichat-api:<TAG>-migrator
-docker push <REGISTRY>/munichat-web:<TAG>
+docker push <REGISTRY>/elyzian-api:<TAG>
+docker push <REGISTRY>/elyzian-api:<TAG>-migrator
+docker push <REGISTRY>/elyzian-web:<TAG>
 ```
 
 **Known tradeoff:** Vite bakes `VITE_API_URL`/`VITE_WS_URL` into the static
@@ -72,8 +72,8 @@ Don't apply `secret.example.yaml` as-is — it's a template. Preferred path,
 so real credentials never touch a file in your checkout:
 
 ```sh
-kubectl create secret generic munichat-secret -n munichat \
-  --from-literal=DATABASE_URL='postgresql://user:pass@host:5432/munichat?schema=public' \
+kubectl create secret generic elyzian-secret -n elyzian \
+  --from-literal=DATABASE_URL='postgresql://user:pass@host:5432/elyzian?schema=public' \
   --from-literal=REDIS_URL='redis://:password@host:6379' \
   --from-literal=MINIO_ROOT_USER='...' \
   --from-literal=MINIO_ROOT_PASSWORD='...' \
@@ -99,7 +99,7 @@ kubectl apply -f configmap.yaml
 # create the secret (see above), or: kubectl apply -f secret.yaml
 
 kubectl apply -f api-migrate-job.yaml
-kubectl wait --for=condition=complete job/munichat-api-migrate -n munichat --timeout=120s
+kubectl wait --for=condition=complete job/elyzian-api-migrate -n elyzian --timeout=120s
 kubectl delete -f api-migrate-job.yaml   # Job names are immutable; delete before reapplying next release
 
 kubectl apply -f api-deployment.yaml
@@ -117,10 +117,10 @@ kubectl apply -f ingress.yaml
 Before pointing DNS/Ingress at it, port-forward directly to a pod:
 
 ```sh
-kubectl port-forward -n munichat deploy/munichat-api 3000:3000
+kubectl port-forward -n elyzian deploy/elyzian-api 3000:3000
 curl http://localhost:3000/health
 
-kubectl port-forward -n munichat deploy/munichat-web 8080:80
+kubectl port-forward -n elyzian deploy/elyzian-web 8080:80
 curl http://localhost:8080/
 ```
 
@@ -144,7 +144,7 @@ fails) against `api.<domain>`.
   after a connection is established — it is not a distributed session store
   for the polling handshake's several sequential HTTP requests, which must
   all land on the same pod. Hence `nginx.ingress.kubernetes.io/affinity:
-  cookie` on `munichat-api`'s Ingress only.
+  cookie` on `elyzian-api`'s Ingress only.
 - **Why liveness is `tcpSocket`, not `httpGet /health`:** `/health` does a
   real Prisma→Postgres ping. That's the right check for readiness (stop
   routing traffic here), but wrong for liveness — a transient DB blip would

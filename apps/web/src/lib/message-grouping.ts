@@ -1,4 +1,4 @@
-import type { Message } from '@munichat/shared';
+import type { Message } from '@elyzian/shared';
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 

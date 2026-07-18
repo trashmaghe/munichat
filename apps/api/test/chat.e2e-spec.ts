@@ -15,7 +15,7 @@ import {
   PresenceUpdatePayload,
   SocketEvent,
   TypingBroadcast,
-} from '@munichat/shared';
+} from '@elyzian/shared';
 import { z } from 'zod';
 import { AppModule } from './../src/app.module';
 import { RedisIoAdapter } from '../src/chat/redis-io.adapter';
@@ -115,7 +115,7 @@ describe('Chat (e2e)', () => {
     // before we look it up.
     await loginAndGetCookie('jsilva');
     const channel = await prisma.channel.findUnique({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=munichat,dc=local' },
+      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
     });
     channelId = channel!.id;
   });

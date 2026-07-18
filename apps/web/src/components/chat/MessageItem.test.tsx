@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { Message } from '@munichat/shared';
+import type { Message } from '@elyzian/shared';
 import { MessageItem } from '@/components/chat/MessageItem';
 
 const author = { id: 'user-1', username: 'jsilva', displayName: 'Joao Silva', avatarUrl: null };
@@ -157,7 +157,7 @@ describe('MessageItem', () => {
     expect(screen.getByLabelText('Delete')).toBeInTheDocument();
   });
 
-  it('renders a <video> element for a video attachment', () => {
+  it('renders a <video> element for a video attachment', async () => {
     const { container } = render(
       <MessageItem
         message={buildMessage({
@@ -172,12 +172,12 @@ describe('MessageItem', () => {
         onDelete={() => {}}
       />,
     );
+    await waitFor(() => expect(container.querySelector('video')).not.toBeNull());
     const video = container.querySelector('video');
-    expect(video).not.toBeNull();
     expect(video?.getAttribute('src')).toContain('/files/a1');
   });
 
-  it('renders the audio player for an audio attachment', () => {
+  it('renders the audio player for an audio attachment', async () => {
     vi.stubGlobal(
       'IntersectionObserver',
       class {
@@ -200,8 +200,8 @@ describe('MessageItem', () => {
         onDelete={() => {}}
       />,
     );
+    expect(await screen.findByLabelText('Reproduzir')).toBeInTheDocument();
     expect(container.querySelector('[data-slot="audio-attachment"]')).not.toBeNull();
-    expect(screen.getByLabelText('Reproduzir')).toBeInTheDocument();
     expect(screen.getByText('audio.mp3')).toBeInTheDocument();
     vi.unstubAllGlobals();
   });

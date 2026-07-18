@@ -33,7 +33,7 @@ describe('AuthService', () => {
     adObjectGuid: 'uuid-1',
     username: 'jsilva',
     displayName: 'Joao Silva',
-    email: 'jsilva@munichat.local',
+    email: 'jsilva@elyzian.local',
     department: 'TI',
     avatarUrl: null,
     isActive: true,
@@ -96,13 +96,13 @@ describe('AuthService', () => {
   describe('login', () => {
     it('issues tokens and syncs channels on successful LDAP bind', async () => {
       ldapService.findUserByUsername.mockResolvedValue({
-        dn: 'uid=jsilva,ou=people,dc=munichat,dc=local',
+        dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
         uniqueId: 'uuid-1',
         username: 'jsilva',
         displayName: 'Joao Silva',
-        email: 'jsilva@munichat.local',
+        email: 'jsilva@elyzian.local',
         department: 'TI',
-        memberOf: ['cn=ti,ou=groups,dc=munichat,dc=local'],
+        memberOf: ['cn=ti,ou=groups,dc=elyzian,dc=local'],
       });
       ldapService.verifyCredentials.mockResolvedValue(true);
       prisma.user.upsert.mockResolvedValue(user);
@@ -110,12 +110,12 @@ describe('AuthService', () => {
       const result = await service.login('jsilva', 'correct-pass');
 
       expect(ldapService.verifyCredentials).toHaveBeenCalledWith(
-        'uid=jsilva,ou=people,dc=munichat,dc=local',
+        'uid=jsilva,ou=people,dc=elyzian,dc=local',
         'correct-pass',
       );
       expect(channelSyncService.syncChannelsForUser).toHaveBeenCalledWith(
         'user-1',
-        ['cn=ti,ou=groups,dc=munichat,dc=local'],
+        ['cn=ti,ou=groups,dc=elyzian,dc=local'],
       );
       expect(result.user).toEqual(user);
       expect(result.tokens.accessToken).toBe('access-token');
@@ -138,7 +138,7 @@ describe('AuthService', () => {
 
     it('rejects a wrong password', async () => {
       ldapService.findUserByUsername.mockResolvedValue({
-        dn: 'uid=jsilva,ou=people,dc=munichat,dc=local',
+        dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
         uniqueId: 'uuid-1',
         username: 'jsilva',
         displayName: 'Joao Silva',

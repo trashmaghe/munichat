@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { MessageType, Prisma } from '@prisma/client';
-import { PendingAttachment } from '@munichat/shared';
+import { PendingAttachment } from '@elyzian/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilesService } from '../files/files.service';
 import { GlpiService, GlpiUnavailableError } from '../glpi/glpi.service';
@@ -242,7 +242,7 @@ export class MessagesService {
       ticket = await this.glpiService.createTicket({
         title: description.slice(0, TICKET_TITLE_MAX_LENGTH),
         content: description,
-        requesterLabel: `Reported via MuniChat by ${author.displayName} (${author.username})`,
+        requesterLabel: `Reported via Elyzian by ${author.displayName} (${author.username})`,
       });
     } catch (err) {
       if (err instanceof GlpiUnavailableError) {

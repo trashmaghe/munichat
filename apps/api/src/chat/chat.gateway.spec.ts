@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
-import { SocketEvent } from '@munichat/shared';
+import { SocketEvent } from '@elyzian/shared';
 import { ChatGateway } from './chat.gateway';
 import { ChatAuthService } from './chat-auth.service';
 import { PresenceService } from './presence.service';

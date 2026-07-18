@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: munichat-web
-  namespace: munichat
+  name: elyzian-web
+  namespace: elyzian
 spec:
   type: ClusterIP
   selector:
-    app: munichat-web
+    app: elyzian-web
   ports:
     - port: 80
       targetPort: 80

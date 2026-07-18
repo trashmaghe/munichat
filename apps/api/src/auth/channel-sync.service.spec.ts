@@ -32,17 +32,17 @@ describe('ChannelSyncService', () => {
       .mockResolvedValueOnce({ id: 'channel-financas' });
 
     await service.syncChannelsForUser('user-1', [
-      'cn=ti,ou=groups,dc=munichat,dc=local',
-      'cn=financas,ou=groups,dc=munichat,dc=local',
+      'cn=ti,ou=groups,dc=elyzian,dc=local',
+      'cn=financas,ou=groups,dc=elyzian,dc=local',
     ]);
 
     expect(prisma.channel.upsert).toHaveBeenCalledWith({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=munichat,dc=local' },
+      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
       create: {
         name: 'ti',
         displayName: 'ti',
         type: ChannelType.DEPARTMENT,
-        adGroupDn: 'cn=ti,ou=groups,dc=munichat,dc=local',
+        adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local',
       },
       update: {},
       select: { id: true },
@@ -75,11 +75,11 @@ describe('ChannelSyncService', () => {
     });
 
     await service.syncChannelsForUser('user-1', [
-      'cn=ti,ou=groups,dc=munichat,dc=local',
+      'cn=ti,ou=groups,dc=elyzian,dc=local',
     ]);
 
     expect(prisma.channel.findUniqueOrThrow).toHaveBeenCalledWith({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=munichat,dc=local' },
+      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
       select: { id: true },
     });
     expect(prisma.channelMember.createMany).toHaveBeenCalledWith({
@@ -94,7 +94,7 @@ describe('ChannelSyncService', () => {
     prisma.channel.upsert.mockResolvedValue({ id: 'channel-ti' });
 
     await service.syncChannelsForUser('user-1', [
-      'cn=ti,ou=groups,dc=munichat,dc=local',
+      'cn=ti,ou=groups,dc=elyzian,dc=local',
     ]);
 
     expect(prisma.channelMember.deleteMany).toHaveBeenCalledWith({
@@ -103,7 +103,7 @@ describe('ChannelSyncService', () => {
         channel: {
           adGroupDn: {
             not: null,
-            notIn: ['cn=ti,ou=groups,dc=munichat,dc=local'],
+            notIn: ['cn=ti,ou=groups,dc=elyzian,dc=local'],
           },
         },
       },

@@ -1,0 +1,35 @@
+# Production edge overlay: a Caddy reverse proxy in front of `web` and `api`,
+# terminating TLS with automatic Let's Encrypt certificates.
+#
+# Usage (from repo root):
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.edge.yml --env-file .env up -d
+#
+# Requires APP_DOMAIN, API_DOMAIN, and ACME_EMAIL in .env, both domains'
+# DNS pointing at this host, and ports 80/443 open. The web image must be built
+# with VITE_API_URL=https://$API_DOMAIN and VITE_WS_URL=wss://$API_DOMAIN — see
+# docs/deploy-edge.md.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+      PORT: ${PORT}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # persists issued certificates across restarts
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

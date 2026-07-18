@@ -17,7 +17,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaClient } from '@prisma/client';
 import { io, Socket } from 'socket.io-client';
-import { Message, SocketEvent } from '@munichat/shared';
+import { Message, SocketEvent } from '@elyzian/shared';
 import { AppModule } from './../src/app.module';
 import { RedisIoAdapter } from '../src/chat/redis-io.adapter';
 
@@ -192,7 +192,7 @@ describe('GLPI ticketing (e2e)', () => {
 
     await loginAndGetCookie('jsilva');
     const channel = await prisma.channel.findUnique({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=munichat,dc=local' },
+      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
     });
     channelId = channel!.id;
   });
