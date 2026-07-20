@@ -133,6 +133,7 @@ elyzian/
 
 ## Documentação
 
+- **[docs/deploy.md](docs/deploy.md)** — guia de implantação em produção (passo a passo)
 - **[docs/architecture.md](docs/architecture.md)** — descrição completa da arquitetura
 - **[docs/desktop-apps.md](docs/desktop-apps.md)** — o cliente desktop + instalador corporativo
 - **[docs/deploy-edge.md](docs/deploy-edge.md)** — borda de produção Caddy + TLS automático

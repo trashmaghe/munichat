@@ -128,6 +128,7 @@ elyzian/
 
 ## Documentation
 
+- **[docs/deploy.md](docs/deploy.md)** — production deployment runbook (step by step)
 - **[docs/architecture.md](docs/architecture.md)** — full architecture write-up
 - **[docs/desktop-apps.md](docs/desktop-apps.md)** — the desktop client + enterprise installer
 - **[docs/deploy-edge.md](docs/deploy-edge.md)** — production Caddy + auto-TLS edge
