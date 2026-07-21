@@ -185,7 +185,7 @@ describe('SocketProvider', () => {
     expect(channels?.find((c) => c.id === 'channel-1')?.unreadCount).toBe(0);
   });
 
-  it('clears the currentUser cache when the socket reports a connect_error', async () => {
+  it('does not clear the currentUser cache on a single connect_error (socket.io retries on its own)', async () => {
     const { SocketProvider } = await loadSocketProvider();
     const queryClient = new QueryClient();
     queryClient.setQueryData(['currentUser'], { id: 'user-1' });
@@ -200,6 +200,49 @@ describe('SocketProvider', () => {
 
     getMockSocket().trigger('connect_error');
 
+    expect(queryClient.getQueryData(['currentUser'])).toEqual({ id: 'user-1' });
+  });
+
+  it('clears the currentUser cache after several consecutive connect_errors', async () => {
+    const { SocketProvider } = await loadSocketProvider();
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['currentUser'], { id: 'user-1' });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SocketProvider>
+          <div>chat</div>
+        </SocketProvider>
+      </QueryClientProvider>,
+    );
+
+    getMockSocket().trigger('connect_error');
+    getMockSocket().trigger('connect_error');
+    expect(queryClient.getQueryData(['currentUser'])).toEqual({ id: 'user-1' });
+
+    getMockSocket().trigger('connect_error');
     expect(queryClient.getQueryData(['currentUser'])).toBeNull();
+  });
+
+  it('resets the failure count on a successful connect', async () => {
+    const { SocketProvider } = await loadSocketProvider();
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['currentUser'], { id: 'user-1' });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SocketProvider>
+          <div>chat</div>
+        </SocketProvider>
+      </QueryClientProvider>,
+    );
+
+    getMockSocket().trigger('connect_error');
+    getMockSocket().trigger('connect_error');
+    getMockSocket().trigger('connect');
+    getMockSocket().trigger('connect_error');
+    getMockSocket().trigger('connect_error');
+
+    expect(queryClient.getQueryData(['currentUser'])).toEqual({ id: 'user-1' });
   });
 });

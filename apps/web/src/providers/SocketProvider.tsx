@@ -70,8 +70,23 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     function handleTypingStop(payload: TypingBroadcast) {
       useChatStore.getState().removeTyping(payload.channelId, payload.userId);
     }
+    // socket.io retries with backoff on its own (reconnectionAttempts is
+    // Infinity by default) and a single connect_error is often just a
+    // transient hiccup - e.g. the very first handshake racing the browser
+    // committing the just-issued access_token cookie. Only treat it as a
+    // dead session once several attempts in a row have failed; a lone
+    // failure used to force a full logout/redirect-to-login on otherwise
+    // successful logins.
+    const CONSECUTIVE_FAILURES_BEFORE_LOGOUT = 3;
+    let consecutiveFailures = 0;
+    function handleConnect() {
+      consecutiveFailures = 0;
+    }
     function handleConnectError() {
-      queryClient.setQueryData(['currentUser'], null);
+      consecutiveFailures += 1;
+      if (consecutiveFailures >= CONSECUTIVE_FAILURES_BEFORE_LOGOUT) {
+        queryClient.setQueryData(['currentUser'], null);
+      }
     }
 
     socket.on(SocketEvent.MESSAGE_NEW, handleMessageNew);
@@ -80,6 +95,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     socket.on(SocketEvent.PRESENCE_UPDATE, handlePresenceUpdate);
     socket.on(SocketEvent.TYPING_START, handleTypingStart);
     socket.on(SocketEvent.TYPING_STOP, handleTypingStop);
+    socket.on('connect', handleConnect);
     socket.on('connect_error', handleConnectError);
     socket.connect();
 
@@ -95,6 +111,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       socket.off(SocketEvent.PRESENCE_UPDATE, handlePresenceUpdate);
       socket.off(SocketEvent.TYPING_START, handleTypingStart);
       socket.off(SocketEvent.TYPING_STOP, handleTypingStop);
+      socket.off('connect', handleConnect);
       socket.off('connect_error', handleConnectError);
       socket.disconnect();
     };
