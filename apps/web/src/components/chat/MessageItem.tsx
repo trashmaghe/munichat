@@ -80,7 +80,7 @@ export function MessageItem({
 
   if (message.deletedAt) {
     return (
-      <div data-slot="message-item" className={cn('flex flex-col gap-0.5 px-4 py-1', isOwn && 'items-end')}>
+      <div data-slot="message-item" className="flex flex-col gap-0.5 px-4 py-1">
         <p className="text-sm text-muted-foreground italic">Message was deleted</p>
       </div>
     );
@@ -90,7 +90,7 @@ export function MessageItem({
     <div
       data-slot="message-item"
       data-grouped={isGrouped}
-      className={cn('group flex gap-2 px-4', isGrouped ? 'py-0.5' : 'py-1.5', isOwn && 'flex-row-reverse')}
+      className={cn('group flex gap-2 px-4', isGrouped ? 'py-0.5' : 'py-1.5')}
     >
       <div className="flex w-8 shrink-0 justify-center pt-0.5">
         {isGrouped ? (
@@ -102,7 +102,7 @@ export function MessageItem({
         )}
       </div>
 
-      <div className={cn('flex min-w-0 flex-1 flex-col gap-0.5', isOwn && 'items-end')}>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {message.replyTo && (
           <div className="max-w-prose rounded-md border-l-2 border-gold/60 bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
             {message.replyTo.deleted ? (

@@ -157,18 +157,29 @@ export function derivedUrls(c: EnterpriseConfig): {
   webOrigin: string;
   viteApiUrl: string;
   viteWsUrl: string;
+  minioPublicUrl: string;
 } {
+  // MinIO isn't proxied through the Caddy edge (no route for it exists yet
+  // either way), so uploads always hit it directly on its published host
+  // port - same as the API port in the non-edge case. This must NOT be the
+  // internal `minio` Docker hostname (MINIO_ENDPOINT): that's only
+  // resolvable container-to-container, not from the browser that actually
+  // PUTs the file to a presigned URL built from this value.
+  const minioPublicUrl = `http://${c.appDomain || 'localhost'}:${c.minioPort}`;
+
   if (c.useEdge) {
     return {
       webOrigin: `https://${c.appDomain}`,
       viteApiUrl: `https://${c.apiDomain}`,
       viteWsUrl: `wss://${c.apiDomain}`,
+      minioPublicUrl,
     };
   }
   return {
     webOrigin: `http://${c.appDomain || 'localhost'}`,
     viteApiUrl: `http://${c.appDomain || 'localhost'}:${c.apiPort}`,
     viteWsUrl: `ws://${c.appDomain || 'localhost'}:${c.apiPort}`,
+    minioPublicUrl,
   };
 }
 
@@ -180,7 +191,7 @@ function line(key: string, value: string): string {
 export function buildEnvFile(c: EnterpriseConfig): string {
   const databaseUrl = `postgresql://${c.postgresUser}:${c.postgresPassword}@postgres:${c.postgresPort}/${c.postgresDb}?schema=public`;
   const redisUrl = `redis://redis:${c.redisPort}`;
-  const { webOrigin, viteApiUrl, viteWsUrl } = derivedUrls(c);
+  const { webOrigin, viteApiUrl, viteWsUrl, minioPublicUrl } = derivedUrls(c);
 
   const sections: string[][] = [
     [
@@ -205,6 +216,9 @@ export function buildEnvFile(c: EnterpriseConfig): string {
       line('MINIO_ENDPOINT', 'minio'),
       line('MINIO_USE_SSL', 'false'),
       line('MINIO_BUCKET', c.minioBucket),
+      // Browser-facing: presigned upload URLs are built from this, not
+      // MINIO_ENDPOINT above (which only resolves inside the Docker network).
+      line('MINIO_PUBLIC_ENDPOINT', minioPublicUrl),
     ],
     [
       '# --- LDAP / Active Directory ---',

@@ -12,7 +12,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Attachment } from '@prisma/client';
 import { PresignUploadResponse } from '@elyzian/shared';
 import { PrismaService } from '../prisma/prisma.service';
-import { createS3Client } from './files.s3-client';
+import { createPresignS3Client, createS3Client } from './files.s3-client';
 
 const PRESIGN_EXPIRY_SECONDS = 300;
 
@@ -30,6 +30,7 @@ export type AttachmentForDownload = Attachment & {
 @Injectable()
 export class FilesService {
   private readonly s3: S3Client;
+  private readonly presignS3: S3Client;
   private readonly bucket: string;
 
   constructor(
@@ -37,6 +38,7 @@ export class FilesService {
     private readonly prisma: PrismaService,
   ) {
     this.s3 = createS3Client(configService);
+    this.presignS3 = createPresignS3Client(configService);
     this.bucket = configService.get<string>('MINIO_BUCKET')!;
   }
 
@@ -46,7 +48,7 @@ export class FilesService {
     const objectKey = `attachments/${input.channelId}/${randomUUID()}-${this.sanitizeFileName(input.fileName)}`;
 
     const uploadUrl = await getSignedUrl(
-      this.s3,
+      this.presignS3,
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: objectKey,

@@ -1,0 +1,6 @@
+# Force LF regardless of platform/core.autocrlf - several of these files
+# (Dockerfile entrypoints, CI scripts) get COPYed straight into Linux
+# containers or run by bash; a CRLF shebang line resolves to a nonexistent
+# interpreter path ("/bin/sh\r") and fails silently as "not found".
+* text=auto eol=lf
+*.sh text eol=lf
