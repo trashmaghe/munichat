@@ -10,6 +10,14 @@
 #
 # Images + tag come from .env (ELYZIAN_REGISTRY, ELYZIAN_IMAGE_TAG); the web
 # image reads its API/WS origins at runtime, so it is not per-deployment.
+#
+# `name:` below is deliberate, not cosmetic: without it, Compose derives the
+# project name from this file's parent directory, which happens to be
+# "docker" for BOTH this file and docker-compose.yml (the source-build dev
+# stack) - `docker compose up` against either one then reuses the SAME
+# containers, network, and named volumes (postgres data included) as the
+# other, silently overwriting whichever stack was already running.
+name: elyzian
 services:
   postgres:
     image: postgres:16-alpine

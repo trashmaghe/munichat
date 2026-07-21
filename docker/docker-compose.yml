@@ -1,3 +1,10 @@
+# `name:` is deliberate, not cosmetic: without it, Compose derives the project
+# name from this file's parent directory, which happens to be "docker" for
+# BOTH this file and docker-compose.images.yml (what the enterprise installer
+# runs) - `docker compose up` against either one then reuses the SAME
+# containers, network, and named volumes (postgres data included) as the
+# other, silently overwriting whichever stack was already running.
+name: elyzian-dev
 services:
   postgres:
     image: postgres:16-alpine
