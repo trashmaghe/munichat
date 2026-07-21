@@ -17,8 +17,21 @@ export function LoginPage() {
 
   const mutation = useMutation({
     mutationFn: login,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    // Seed the cache directly from the response instead of invalidating and
+    // relying on a refetch to land before navigating: invalidateQueries only
+    // forces an immediate refetch for an *actively observed* query, and
+    // nothing observes ['currentUser'] while we're sitting on /login (that
+    // only happens inside ProtectedRoute, which isn't mounted yet). The
+    // invalidation used to just mark the cache stale and resolve right away,
+    // so navigate('/') could mount ProtectedRoute before its own background
+    // refetch had come back - which then read the *stale error* left over
+    // from the pre-login unauthenticated check (isLoading is false once a
+    // query has any settled result, error included) and bounced straight
+    // back to /login. A fast browser tab usually outran that race; the
+    // desktop client's WebView2 consistently didn't, requiring a second,
+    // now-successful login to actually get in.
+    onSuccess: (data) => {
+      queryClient.setQueryData(['currentUser'], data.user);
       navigate('/');
     },
   });
