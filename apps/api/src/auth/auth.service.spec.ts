@@ -102,7 +102,7 @@ describe('AuthService', () => {
         displayName: 'Joao Silva',
         email: 'jsilva@elyzian.local',
         department: 'TI',
-        memberOf: ['cn=ti,ou=groups,dc=elyzian,dc=local'],
+        departmentDn: 'ou=ti,ou=groups,dc=elyzian,dc=local',
       });
       ldapService.verifyCredentials.mockResolvedValue(true);
       prisma.user.upsert.mockResolvedValue(user);
@@ -115,7 +115,7 @@ describe('AuthService', () => {
       );
       expect(channelSyncService.syncChannelsForUser).toHaveBeenCalledWith(
         'user-1',
-        ['cn=ti,ou=groups,dc=elyzian,dc=local'],
+        { dn: 'ou=ti,ou=groups,dc=elyzian,dc=local', name: 'TI' },
       );
       expect(result.user).toEqual(user);
       expect(result.tokens.accessToken).toBe('access-token');
@@ -144,7 +144,7 @@ describe('AuthService', () => {
         displayName: 'Joao Silva',
         email: null,
         department: null,
-        memberOf: [],
+        departmentDn: null,
       });
       ldapService.verifyCredentials.mockResolvedValue(false);
 

@@ -10,6 +10,8 @@ describe('ChannelSyncService', () => {
     channelMember: { createMany: jest.Mock; deleteMany: jest.Mock };
   };
 
+  const ti = { dn: 'OU=Tecnologia da Informacao,OU=SEMAD,DC=elyzian,DC=local', name: 'Tecnologia da Informacao' };
+
   beforeEach(async () => {
     prisma = {
       channel: { upsert: jest.fn(), findUniqueOrThrow: jest.fn() },
@@ -26,39 +28,25 @@ describe('ChannelSyncService', () => {
     service = module.get(ChannelSyncService);
   });
 
-  it('upserts a channel and inserts memberships for each memberOf DN', async () => {
-    prisma.channel.upsert
-      .mockResolvedValueOnce({ id: 'channel-ti' })
-      .mockResolvedValueOnce({ id: 'channel-financas' });
+  it('upserts the department channel and inserts a membership for it', async () => {
+    prisma.channel.upsert.mockResolvedValueOnce({ id: 'channel-ti' });
 
-    await service.syncChannelsForUser('user-1', [
-      'cn=ti,ou=groups,dc=elyzian,dc=local',
-      'cn=financas,ou=groups,dc=elyzian,dc=local',
-    ]);
+    await service.syncChannelsForUser('user-1', ti);
 
     expect(prisma.channel.upsert).toHaveBeenCalledWith({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
+      where: { adGroupDn: ti.dn },
       create: {
-        name: 'ti',
-        displayName: 'ti',
+        name: 'tecnologia-da-informacao',
+        displayName: 'Tecnologia da Informacao',
         type: ChannelType.DEPARTMENT,
-        adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local',
+        adGroupDn: ti.dn,
       },
       update: {},
       select: { id: true },
     });
 
-    // Memberships are inserted in one conflict-safe batch (ON CONFLICT DO NOTHING),
-    // so a concurrent login of the same user can never trip a duplicate-key error.
     expect(prisma.channelMember.createMany).toHaveBeenCalledWith({
-      data: [
-        { userId: 'user-1', channelId: 'channel-ti', role: MemberRole.MEMBER },
-        {
-          userId: 'user-1',
-          channelId: 'channel-financas',
-          role: MemberRole.MEMBER,
-        },
-      ],
+      data: [{ userId: 'user-1', channelId: 'channel-ti', role: MemberRole.MEMBER }],
       skipDuplicates: true,
     });
     expect(prisma.channelMember.createMany).toHaveBeenCalledTimes(1);
@@ -74,44 +62,33 @@ describe('ChannelSyncService', () => {
       id: 'channel-ti',
     });
 
-    await service.syncChannelsForUser('user-1', [
-      'cn=ti,ou=groups,dc=elyzian,dc=local',
-    ]);
+    await service.syncChannelsForUser('user-1', ti);
 
     expect(prisma.channel.findUniqueOrThrow).toHaveBeenCalledWith({
-      where: { adGroupDn: 'cn=ti,ou=groups,dc=elyzian,dc=local' },
+      where: { adGroupDn: ti.dn },
       select: { id: true },
     });
     expect(prisma.channelMember.createMany).toHaveBeenCalledWith({
-      data: [
-        { userId: 'user-1', channelId: 'channel-ti', role: MemberRole.MEMBER },
-      ],
+      data: [{ userId: 'user-1', channelId: 'channel-ti', role: MemberRole.MEMBER }],
       skipDuplicates: true,
     });
   });
 
-  it('prunes AD-linked memberships for groups no longer in memberOf', async () => {
+  it('prunes AD-linked memberships for departments other than the current one', async () => {
     prisma.channel.upsert.mockResolvedValue({ id: 'channel-ti' });
 
-    await service.syncChannelsForUser('user-1', [
-      'cn=ti,ou=groups,dc=elyzian,dc=local',
-    ]);
+    await service.syncChannelsForUser('user-1', ti);
 
     expect(prisma.channelMember.deleteMany).toHaveBeenCalledWith({
       where: {
         userId: 'user-1',
-        channel: {
-          adGroupDn: {
-            not: null,
-            notIn: ['cn=ti,ou=groups,dc=elyzian,dc=local'],
-          },
-        },
+        channel: { adGroupDn: { not: null, notIn: [ti.dn] } },
       },
     });
   });
 
-  it('is a no-op on channel/membership upserts when memberOf is empty, but still prunes', async () => {
-    await service.syncChannelsForUser('user-1', []);
+  it('is a no-op on channel/membership upserts when the department is null, but still prunes', async () => {
+    await service.syncChannelsForUser('user-1', null);
 
     expect(prisma.channel.upsert).not.toHaveBeenCalled();
     expect(prisma.channelMember.createMany).not.toHaveBeenCalled();

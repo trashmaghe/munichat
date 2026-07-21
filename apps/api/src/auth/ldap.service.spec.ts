@@ -5,7 +5,7 @@ import { LdapService } from './ldap.service';
 const mockClientInstance = {
   bind: jest.fn(),
   search: jest.fn(),
-  unbind: jest.fn(),
+  unbind: jest.fn().mockResolvedValue(undefined),
 };
 
 jest.mock('ldapts', () => ({
@@ -41,17 +41,15 @@ describe('LdapService', () => {
   });
 
   describe('findUserByUsername', () => {
-    it('returns a normalized user entry, coercing a single memberOf string into an array', async () => {
+    it('returns a normalized user entry, deriving department from the parent OU', async () => {
       mockClientInstance.search.mockResolvedValue({
         searchEntries: [
           {
-            dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
+            dn: 'CN=Joao Silva,OU=Tecnologia da Informacao,OU=SEMAD,DC=elyzian,DC=local',
             uid: 'jsilva',
             entryUUID: 'uuid-1',
             displayName: 'Joao Silva',
             mail: 'jsilva@elyzian.local',
-            departmentNumber: 'TI',
-            memberOf: 'cn=ti,ou=groups,dc=elyzian,dc=local',
           },
         ],
       });
@@ -63,46 +61,22 @@ describe('LdapService', () => {
         'admin-pass',
       );
       expect(result).toEqual({
-        dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
+        dn: 'CN=Joao Silva,OU=Tecnologia da Informacao,OU=SEMAD,DC=elyzian,DC=local',
         uniqueId: 'uuid-1',
         username: 'jsilva',
         displayName: 'Joao Silva',
         email: 'jsilva@elyzian.local',
-        department: 'TI',
-        memberOf: ['cn=ti,ou=groups,dc=elyzian,dc=local'],
+        department: 'Tecnologia da Informacao',
+        departmentDn: 'OU=Tecnologia da Informacao,OU=SEMAD,DC=elyzian,DC=local',
       });
       expect(mockClientInstance.unbind).toHaveBeenCalled();
     });
 
-    it('keeps multiple memberOf values as an array', async () => {
+    it('returns a null department when the immediate parent is not an OU', async () => {
       mockClientInstance.search.mockResolvedValue({
         searchEntries: [
           {
-            dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
-            uid: 'jsilva',
-            entryUUID: 'uuid-1',
-            displayName: 'Joao Silva',
-            memberOf: [
-              'cn=ti,ou=groups,dc=elyzian,dc=local',
-              'cn=financas,ou=groups,dc=elyzian,dc=local',
-            ],
-          },
-        ],
-      });
-
-      const result = await service.findUserByUsername('jsilva');
-
-      expect(result?.memberOf).toEqual([
-        'cn=ti,ou=groups,dc=elyzian,dc=local',
-        'cn=financas,ou=groups,dc=elyzian,dc=local',
-      ]);
-    });
-
-    it('returns an empty memberOf array when the user belongs to no groups', async () => {
-      mockClientInstance.search.mockResolvedValue({
-        searchEntries: [
-          {
-            dn: 'uid=jsilva,ou=people,dc=elyzian,dc=local',
+            dn: 'CN=Joao Silva,CN=Users,DC=elyzian,DC=local',
             uid: 'jsilva',
             entryUUID: 'uuid-1',
             displayName: 'Joao Silva',
@@ -112,7 +86,8 @@ describe('LdapService', () => {
 
       const result = await service.findUserByUsername('jsilva');
 
-      expect(result?.memberOf).toEqual([]);
+      expect(result?.department).toBeNull();
+      expect(result?.departmentDn).toBeNull();
     });
 
     it('returns null when no user matches', async () => {

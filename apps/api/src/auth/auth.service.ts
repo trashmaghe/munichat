@@ -75,7 +75,9 @@ export class AuthService {
 
     await this.channelSyncService.syncChannelsForUser(
       user.id,
-      ldapUser.memberOf,
+      ldapUser.departmentDn && ldapUser.department
+        ? { dn: ldapUser.departmentDn, name: ldapUser.department }
+        : null,
     );
 
     const tokens = await this.issueTokens(user);

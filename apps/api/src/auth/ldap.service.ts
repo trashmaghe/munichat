@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from 'ldapts';
 
@@ -9,11 +9,13 @@ export interface LdapUserEntry {
   displayName: string;
   email: string | null;
   department: string | null;
-  memberOf: string[];
+  departmentDn: string | null;
 }
 
 @Injectable()
 export class LdapService {
+  private readonly logger = new Logger(LdapService.name);
+
   constructor(private readonly configService: ConfigService) {}
 
   async findUserByUsername(username: string): Promise<LdapUserEntry | null> {
@@ -30,8 +32,6 @@ export class LdapService {
           'displayName',
           'cn',
           'mail',
-          'departmentNumber',
-          'memberOf',
         ],
       });
 
@@ -40,6 +40,12 @@ export class LdapService {
         return null;
       }
 
+      // Department comes from where the account itself sits in the OU tree,
+      // not an AD security group - no group/GPO changes needed in AD for a
+      // department channel to exist, it just needs the account placed in the
+      // right OU (which it already is).
+      const department = this.departmentFromDn(entry.dn.toString());
+
       return {
         dn: entry.dn,
         uniqueId: this.first(entry[this.uniqueIdAttribute()]) ?? entry.dn,
@@ -47,8 +53,8 @@ export class LdapService {
         displayName:
           this.first(entry.displayName) ?? this.first(entry.cn) ?? username,
         email: this.first(entry.mail) ?? null,
-        department: this.first(entry.departmentNumber) ?? null,
-        memberOf: this.toArray(entry.memberOf),
+        department: department?.name ?? null,
+        departmentDn: department?.dn ?? null,
       };
     } finally {
       await client.unbind();
@@ -64,10 +70,13 @@ export class LdapService {
     try {
       await client.bind(dn, password);
       return true;
-    } catch {
+    } catch (err) {
+      this.logger.warn(
+        `Bind failed for dn="${dn}": ${err instanceof Error ? err.message : String(err)}`,
+      );
       return false;
     } finally {
-      await client.unbind();
+      await client.unbind().catch(() => {});
     }
   }
 
@@ -114,6 +123,40 @@ export class LdapService {
     value: Buffer | Buffer[] | string[] | string | undefined,
   ): string | undefined {
     return this.toArray(value)[0];
+  }
+
+  // The account's department is its immediate parent OU - e.g. for
+  // "CN=Higor Leão,OU=Tecnologia da Informacao,OU=SEMAD,...", that's
+  // "Tecnologia da Informacao". Returns null when the immediate parent isn't
+  // an OU at all (e.g. built-in containers like CN=Users), since there's no
+  // department to derive there.
+  private departmentFromDn(dn: string): { dn: string; name: string } | null {
+    const rdns = this.splitDn(dn);
+    const parentRdn = rdns[1];
+    if (!parentRdn) {
+      return null;
+    }
+
+    const match = /^OU=(.+)$/i.exec(parentRdn);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      dn: rdns.slice(1).join(','),
+      name: this.unescapeDnValue(match[1]),
+    };
+  }
+
+  // Splits a DN into its RDN components on unescaped commas - LDAP DNs
+  // escape a literal comma inside a value as "\,", which must not be treated
+  // as a component separator.
+  private splitDn(dn: string): string[] {
+    return dn.split(/(?<!\\),/).map((rdn) => rdn.trim());
+  }
+
+  private unescapeDnValue(value: string): string {
+    return value.replace(/\\(.)/g, '$1');
   }
 
   private escapeFilterValue(value: string): string {
